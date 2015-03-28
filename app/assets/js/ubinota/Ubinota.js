@@ -20,122 +20,140 @@ requirejs.config({
   }
 });
 define(['jquery', 'three', 'OrbitControls', 'stats'],function($, THREE){
-	function Ubinota() {
+	conf = {
+		INV_MAX_FPS: 1 / 50,
+		menu_cursor: '../image/menu_cursor.ico'
 	}
-	Ubinota.prototype = {
-		constructor: Ubinota,
-		init: function(){
-			this.container = document.createElement('div');
-			document.body.appendChild(this.container);
-			this.scene = this.scene ? this.scene : new THREE.Scene();
-			this.camera = this.camera ? this.camera : new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.5, 3000000);
-			//this.camera.position.set(0, 0, 0);
-			//this.camera.lookAt(new THREE.Vector3(1,1,1));
-			this.renderer = this.renderer ? this.renderer : new THREE.WebGLRenderer({antialias: true});
-			this.renderer.setPixelRatio (window.devicePixelRatio);
-			this.renderer.setSize(window.innerWidth, window.innerHeight);
-			//this.renderer.setClearColor(0x69A3CD);
-			this.container.appendChild(this.renderer.domElement);
-			this.controls = this.controls ? this.controls : new THREE.OrbitControls(this.camera, this.renderer.domElement);
-			this.controls.userPan = false;
-			this.controls.userPanSpeed = 0.0;
-			this.controls.maxDistance = 5000.0;
-			this.controls.maxPolarAngle = Math.PI * 0.5;
-			this.controls.center.set(0, 100, 0);
-			this.light = this.light ? this.light : new THREE.HemisphereLight(0xffffbb, 0x080820, 1);
-			this.light.position.set(-1, 1, -1);
-			this.stats = new Stats();
-			this.stats.domElement.style.position = 'absolute';
-			this.stats.domElement.style.top = '0px';
-			this.container.appendChild(this.stats.domElement);
-			this.scene.add(this.light);
-			this.initLoadingPgae();
-		},
-		initLoadingPgae: function(){
-			var skyboxMap = new THREE.CubeTexture([]),
-				skybgMap = new THREE.CubeTexture([]);
+	
+	var $container,
+		scene, camera, renderer, controls, light, stats;
+
+	var init = function() {
+		$(document.body).append('<div id="container"></div>');
+		$container = $(document.body).find('#container');
+
+		scene = new THREE.Scene();
+		camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.5, 3000000);
+		light = new THREE.HemisphereLight(0xffffbb, 0x080820, 1);
+		light.position.set(-1, 1, -1);
+
+		scene.add(light);
+
+		renderer = new THREE.WebGLRenderer({antialias: true});
+		renderer.setPixelRatio (window.devicePixelRatio);
+		renderer.setSize(window.innerWidth, window.innerHeight);
+
+		$container.append(renderer.domElement);
+
+		controls = new THREE.OrbitControls(camera, renderer.domElement);
+		controls.userPan = false;
+		controls.userPanSpeed = 0.0;
+		controls.maxDistance = 5000.0;
+		controls.maxPolarAngle = Math.PI * 0.5;
+		controls.center.set(0, 100, 0);
+
+		stats = new Stats();
+		$(stats.domElement).css({'position': 'absolute', 'top': '0px'});
+		$container.append(stats.domElement);
+
+		loadingPgae.init();
+		loadingPgae.animate();
+	}
+
+	var loadingPgae = (function(){
+		var skyboxMap, skybgMap, getSide, loader, loadMap, skyboxShader, skybgShader, skyboxMaterial, skybgMaterial, skybox, skybg, frameDelta, clock;
+		var init = function() {
+			skyboxMap = new THREE.CubeTexture([]);
+			skybgMap = new THREE.CubeTexture([]);
+
 			skyboxMap.flipY = false;
 			skybgMap.flipY = false;
 
-			var loader = new THREE.ImageLoader();
-			var getSide = function(x, y, image) {
+			loader = new THREE.ImageLoader();
+
+			getSide = function(x, y, image){
 				var size = 1024;
-				var canvas = document.createElement('canvas');
+				var canvas = document.createElement('canvas'),
+					context = canvas.getContext('2d');
 				canvas.width = size;
 				canvas.height = size;
-				var context = canvas.getContext('2d');
 				context.drawImage(image, -x * size, -y * size);
 				return canvas;
 			}
+
+			loadMap = function(textureImage, map){
+				map.image[0] = getSide(2, 0, textureImage);
+				map.image[1] = getSide(0, 0, textureImage);
+				map.image[2] = getSide(1, 1, textureImage);
+				map.image[3] = getSide(0, 1, textureImage);
+				map.image[4] = getSide(1, 0, textureImage);
+				map.image[5] = getSide(2, 1, textureImage);
+				map.needsUpdate = true;
+			}
+
 			loader.load('../texture/sky.png', function(image){
-				skyboxMap.image[0] = getSide(2, 0, image);
-				skyboxMap.image[1] = getSide(0, 0, image);
-				skyboxMap.image[2] = getSide(1, 1, image);
-				skyboxMap.image[3] = getSide(0, 1, image);
-				skyboxMap.image[4] = getSide(1, 0, image);
-				skyboxMap.image[5] = getSide(2, 1, image);
-				skyboxMap.needsUpdate = true;
+				loadMap(image, skyboxMap);
 			});
 			loader.load('../texture/skybg.png', function(image){
-				skybgMap.image[0] = getSide(2, 0, image);
-				skybgMap.image[1] = getSide(0, 0, image);
-				skybgMap.image[2] = getSide(1, 1, image);
-				skybgMap.image[3] = getSide(0, 1, image);
-				skybgMap.image[4] = getSide(1, 0, image);
-				skybgMap.image[5] = getSide(2, 1, image);
-				skybgMap.needsUpdate = true;
-			});			
-			var bgShader = THREE.ShaderLib['bgcube'];
-			bgShader.uniforms['tCube'].value = skybgMap;
-			var skybgMaterial = new THREE.ShaderMaterial({
-				fragmentShader: bgShader.fragmentShader,
-				vertexShader: bgShader.vertexShader,
-				uniforms: bgShader.uniforms,
+				loadMap(image, skybgMap);
+			});
+
+			skyboxShader = THREE.ShaderLib['cube'];
+			skyboxShader.uniforms['tCube'].value = skyboxMap;
+			skyboxMaterial = new THREE.ShaderMaterial({
+				fragmentShader: skyboxShader.fragmentShader,
+				vertexShader: skyboxShader.vertexShader,
+				uniforms: skyboxShader.uniforms,
 				depthWrite: false,
 				side: THREE.BackSide
 			});	
-			
-
-			var cubeShader = THREE.ShaderLib['cube'];
-			cubeShader.uniforms['tCube'].value = skyboxMap;
-			var skyboxMaterial = new THREE.ShaderMaterial({
-				fragmentShader: cubeShader.fragmentShader,
-				vertexShader: cubeShader.vertexShader,
-				uniforms: cubeShader.uniforms,
-				depthWrite: false,
-				side: THREE.BackSide
-			});
-
 			skyboxMaterial.transparent = true;
 			skyboxMaterial.blending = THREE.NormalBlending;
-			//skyboxMaterial.anisotropy = this.renderer.getMaxAnisotropy();
-			//make the skybox transparent;
 
-			var skybox = new THREE.Mesh(
-				new THREE.BoxGeometry(100000, 100000, 100000),
-				skyboxMaterial
-				);
+			skybgShader = THREE.ShaderLib['bgcube'];
+			skybgShader.uniforms['tCube'].value = skybgMap;
+			skybgMaterial = new THREE.ShaderMaterial({
+				fragmentShader: skybgShader.fragmentShader,
+				vertexShader: skybgShader.vertexShader,
+				uniforms: skybgShader.uniforms,
+				depthWrite: false,
+				side: THREE.BackSide
+			});	
 
-			
-			var skybg = new THREE.Mesh(
-				new THREE.BoxGeometry(200000, 200000, 200000),
-				skybgMaterial
-				);
-			
-			
-			this.scene.add(skybox);
-			this.scene.add(skybg);
+			skybox = new THREE.Mesh(new THREE.BoxGeometry(100000, 100000, 100000), skyboxMaterial);
+			skybg = new THREE.Mesh(new THREE.BoxGeometry(200000, 200000, 200000), skybgMaterial);
 
-			this.loadingPage = {
-				controls: this.controls,
-				renderer: this.renderer,
-				scene: this.scene,
-				camera: this.camera,
-				skybox: skybox,
-				skybg: skybg,
-				stats: this.stats
-			};
+			scene.add(skybox);
+			scene.add(skybg);
+
+			$container.css('cursor', 'url(' + conf.menu_cursor + '), default');
 		}
-	}
-	return Ubinota;
+
+		frameDelta = 0;
+		clock = new THREE.Clock();
+		var render = function() {
+			controls.update();
+			renderer.render(scene, camera);
+		}
+		var animate = function(){
+			var delta = clock.getDelta();
+			frameDelta += delta;
+			while(frameDelta >= conf.INV_MAX_FPS){
+				skybox.rotation.y -= 0.0005;
+				frameDelta -= conf.INV_MAX_FPS;
+			}
+			requestAnimationFrame(animate);
+			
+			stats.update();
+			render();
+		}
+		return {
+			init: init,
+			animate: animate
+		}
+	})();
+
+	return {
+		init: init
+	};
 });
