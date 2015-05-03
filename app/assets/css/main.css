@@ -4,6 +4,9 @@ body {
     color: #333;
     overflow: hidden;
 }
+#container {
+    cursor: url(../image/menu_cursor.ico), default;
+}
 .browsehappy {
     margin: 0.2em 0;
     background: #ccc;
@@ -13,5 +16,41 @@ body {
 #loading {
 	width: 100%;
 	height: 100%;
+}
+#chapitre{
+    position: absolute;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    background-color: #5d8dbd;
+    text-align: center;
+    display: none;
+}
+#map{
+    height: 100%;
+}
+#chapitre .box {
+    position: relative;
+    display: inline-block;
+    height: 100%;
+}
+#chapitre .point{
+    position: absolute;
+    top: 44%;
+    left: 11%;
+    height: 6%;
+    cursor: url(../image/pointer_cursor.ico), default;
+}
 
+@-webkit-keyframes jump {
+    0% {top: 32%;}
+    100% {top: 34%;}
+}
+#chapitre .arrow{
+    position: absolute;
+    top: 32%;
+    left: 11%;
+    height: 10%;
+    -webkit-animation: jump 1s infinite;
 }

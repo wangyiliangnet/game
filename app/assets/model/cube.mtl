@@ -1,0 +1,19 @@
+# 
+# Wavefront material file
+# Converted by 3D Exploration 1.5.00
+# XDimension Software, LLC
+# http://www.xdsoft.com/explorer/
+# 
+newmtl MAT_102225EC
+	 Ka 0.117647 0.117647 0.117647
+	 Kd 0.752941 0.752941 0.752941
+	 Ks 0.752941 0.752941 0.752941
+	 illum 5.83741e-231
+	 Ns 8
+newmtl PDX01_-_Default
+	 Ka 0 0 0
+	 Kd 1 1 1
+	 Ks 0 0 0
+	 illum 5.83741e-231
+	 Ns 3.2
+	 map_Kd ../texture/cube.png
