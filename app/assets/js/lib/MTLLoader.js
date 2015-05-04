@@ -4,9 +4,10 @@
  * @author angelxuanchang
  */
 
-THREE.MTLLoader = function( baseUrl, options, crossOrigin ) {
+THREE.MTLLoader = function( baseUrl, manager, options, crossOrigin ) {
 
 	this.baseUrl = baseUrl;
+	this.manager = ( manager !== undefined ) ? manager : THREE.DefaultLoadingManager;
 	this.options = options;
 	this.crossOrigin = crossOrigin;
 
@@ -20,7 +21,7 @@ THREE.MTLLoader.prototype = {
 
 		var scope = this;
 
-		var loader = new THREE.XHRLoader();
+		var loader = new THREE.XHRLoader(scope.manager);
 		loader.setCrossOrigin( this.crossOrigin );
 		loader.load( url, function ( text ) {
 

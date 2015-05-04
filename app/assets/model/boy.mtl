@@ -8,18 +8,18 @@ newmtl MAT_BE86C58
 	 Ka 0.117647 0.117647 0.117647
 	 Kd 0.752941 0.752941 0.752941
 	 Ks 0.752941 0.752941 0.752941
-	 illum 6.92511e-255
+	 illum 0
 	 Ns 8
 newmtl Material__337_16_-_DefaultSub0
 	 Ka 0 0 0
 	 Kd 1 1 1
 	 Ks 0 0 0
-	 illum 6.92511e-255
+	 illum 0
 	 Ns 3.2
 	 map_Kd ../texture/boy.png
 newmtl Material__337_08_-_DefaultSub1
 	 Ka 0 0 0
 	 Kd 0 0 0
 	 Ks 0 0 0
-	 illum 6.92511e-255
+	 illum 0
 	 Ns 3.2

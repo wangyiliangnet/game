@@ -80,14 +80,11 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'EffectComposer', 'RenderPa
 	
 	var $container,
 		scene, camera, renderer, controls, light, stats,
-		materials = {
-			white: new THREE.MeshLambertMaterial({shading: THREE.FlatShading, map: THREE.ImageUtils.loadTexture('texture/cube_white.png')}),
-			yellow: new THREE.MeshLambertMaterial({shading: THREE.FlatShading, map: THREE.ImageUtils.loadTexture('texture/cube_yellow.png')}),
-			blue: new THREE.MeshLambertMaterial({shading: THREE.FlatShading, map: THREE.ImageUtils.loadTexture('texture/cube_blue.png')}),
-			green: new THREE.MeshLambertMaterial({shading: THREE.FlatShading, map: THREE.ImageUtils.loadTexture('texture/cube_green.png')}),
-			red: new THREE.MeshLambertMaterial({shading: THREE.FlatShading, map: THREE.ImageUtils.loadTexture('texture/cube_red.png')}),
-			base: new THREE.MeshLambertMaterial({shading: THREE.FlatShading, map: THREE.ImageUtils.loadTexture('texture/cube_base.png')}),
-		};
+		cubeMaterials = {},
+		loaders = {},
+		models = {},
+		maps = [],
+		cubes = [];
 
 
 	var init = function() {
@@ -261,27 +258,94 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'EffectComposer', 'RenderPa
 	};
 
 	var loadCube = function(){
-		var loader = new THREE.OBJMTLLoader();
-        var onProgress = function(){},
-        	onError = function(){};
+		var manager = new THREE.LoadingManager();
+		loaders['map'] = new THREE.XHRLoader(manager);
+		loaders['house1'] = new THREE.OBJMTLLoader(manager);
+		loaders['house2'] = new THREE.OBJMTLLoader(manager);
+		loaders['whiteCube'] = new THREE.OBJMTLLoader(manager);
+		loaders['blueCube'] = new THREE.OBJMTLLoader(manager);
+		loaders['baseCube'] = new THREE.OBJMTLLoader(manager);
+		loaders['blueCubeMat'] = new THREE.MTLLoader('../model/', manager);
 
-        loader.load('../model/lucien_dodo.obj', '../model/lucien_dodo.mtl', function(object){
-        	object.scale.set(1.12, 1.12, 1.12);
+		manager.onLoad = function(){
+			for (var i = 0; i < maps[0].length; i++) {
+				switch(maps[0][i].color){
+					case 'base':
+						var cube = models['baseCube'].clone();
+						break;
+					case 'blue':
+						var cube = models['blueCube'].clone();
+						for (var j = 0; j < cube.children.length; j++) {
+							cubes.push(cube.children[j]);
+						};
+						break;
+					case 'house1':
+						var cube = models['house1'].clone();
+						break;
+					case 'house2':
+						var cube = models['house2'].clone();
+						break;											
+					default:
+						var cube = models['whiteCube'].clone();
+						for (var j = 0; j < cube.children.length; j++) {
+							cubes.push(cube.children[j]);
+						};
+				}
+				cube.position.set(maps[0][i].position.x, maps[0][i].position.y, maps[0][i].position.z);
+				scene.add(cube);
+			};
 
-        	$.getJSON('../js/data.json', function(data){
-				//var cubeGeo = new THREE.BoxGeometry( 50, 50, 50 );
-				for (var i = 0; i < data.length; i++) {
-					//var cube = new Physijs.BoxMesh(cubeGeo, materials[data[i].color]);
-					//cube.position.set(data[i].position.x, data[i].position.y, data[i].position.z);
-					//scene.add(cube);
-					var cube = object.clone();
-					cube.rotation.y = -Math.PI / 2;
-					cube.position.set(data[i].position.x, data[i].position.y, data[i].position.z);
-					scene.add(cube);
-				};
-			});
+		    var onDoubleClick = function(event){
+		        event.preventDefault();
+		        
+		        var mouse = new THREE.Vector2(),
+		        	raycaster = new THREE.Raycaster();
 
-        }, onProgress, onError);         		
+		        mouse.set((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
+
+		        raycaster.setFromCamera(mouse, camera);
+
+		        var intersects = raycaster.intersectObjects(cubes);
+
+		        if(intersects.length) {
+		            var intersect = intersects[0];
+		            console.log(intersect.object.parent.position);
+		            intersect.object.parent.traverse(function(object){
+						if (object instanceof THREE.Mesh) {
+							if ( object.material.name ) {
+								var material = cubeMaterials['blue'].create( object.material.name );
+								if ( material ) object.material = material;
+							}
+						}
+
+					} );
+		        }
+		    };
+
+		    document.addEventListener('dblclick', onDoubleClick, false);
+
+		};
+        loaders['whiteCube'].load('../model/cube.obj', '../model/cube.mtl', function(object){
+        	models['whiteCube'] = object;
+        });
+        loaders['blueCube'].load('../model/cube.obj', '../model/blueCube.mtl', function(object){
+        	models['blueCube'] = object;
+        });
+        loaders['baseCube'].load('../model/base.obj', '../model/base.mtl', function(object){
+        	models['baseCube'] = object;
+        });
+        loaders['blueCubeMat'].load('../model/blueCube.mtl', function(object){
+        	cubeMaterials['blue'] = object;
+        });
+        loaders['house1'].load('../model/house1.obj', '../model/house1.mtl', function(object){
+        	models['house1'] = object;
+        });
+        loaders['house2'].load('../model/house2.obj', '../model/house2.mtl', function(object){
+        	models['house2'] = object;
+        });        
+        loaders['map'].load('../js/map2.json', function(data) {
+			maps[0] = JSON.parse(data);
+		});
 	};
 
 	return {

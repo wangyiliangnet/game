@@ -4,14 +4,14 @@
 # XDimension Software, LLC
 # http://www.xdsoft.com/explorer/
 # 
-newmtl Material__135_20___DefaultSub0
+newmtl Material__425_22___DefaultSub0
 	 Ka 0 0 0
 	 Kd 1 1 1
 	 Ks 0 0 0
 	 illum 2
-	 Ns 3.2
-	 map_Kd ../texture/whiteCube.png
-newmtl Material__68_08___DefaultSub3
+	 Ns 3.03143
+	 map_Kd ../texture/house1.png
+newmtl Material__425_08___DefaultSub1
 	 Ka 0 0 0
 	 Kd 0 0 0
 	 Ks 0 0 0

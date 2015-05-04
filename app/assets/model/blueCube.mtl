@@ -10,7 +10,7 @@ newmtl Material__135_20___DefaultSub0
 	 Ks 0 0 0
 	 illum 2
 	 Ns 3.2
-	 map_Kd ../texture/whiteCube.png
+	 map_Kd ../texture/blueCube.png
 newmtl Material__68_08___DefaultSub3
 	 Ka 0 0 0
 	 Kd 0 0 0
