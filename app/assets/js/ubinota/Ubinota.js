@@ -102,9 +102,8 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'EffectComposer', 'RenderPa
 		var ambient = new THREE.AmbientLight( 0x101030 );
 		scene.add( ambient );
 
-		light = new THREE.HemisphereLight(0xffffbb, 0xffffff, 1);
+		light = new THREE.HemisphereLight(0xffffff, 0xfefefe, 1);
 		//light.position.set(-1, 1, -1);
-
 		scene.add(light);
 
 		renderer = new THREE.WebGLRenderer({antialiasing: true});
@@ -147,6 +146,10 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'EffectComposer', 'RenderPa
 			skybgMap.flipY = false;
 
 			$container.append('<div id="chapitre"><div class="box"><img id="map" src="../image/chapitre.jpg" /><img class="arrow" src="../image/arrow.png" /><img class="point" src="../image/point.png" /></div></div>');
+			$container.find('.point').on('click', function(){
+				$(this).closest('#chapitre').hide();
+			});
+			$container.append('<div id="paints"><img class="dec" src="../image/flower.png" /><div><img class="cube" src="../image/fioleVide.png" /><img id="left" class="cube" src="../image/paints.png" /></div></div>')
 			loader = new THREE.ImageLoader();
 
 			getSide = function(x, y, image){
@@ -268,6 +271,7 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'EffectComposer', 'RenderPa
 		loaders['blueCubeMat'] = new THREE.MTLLoader('../model/', manager);
 
 		manager.onLoad = function(){
+
 			for (var i = 0; i < maps[0].length; i++) {
 				switch(maps[0][i].color){
 					case 'base':
@@ -343,7 +347,7 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'EffectComposer', 'RenderPa
         loaders['house2'].load('../model/house2.obj', '../model/house2.mtl', function(object){
         	models['house2'] = object;
         });        
-        loaders['map'].load('../js/map2.json', function(data) {
+        loaders['map'].load('../js/map1.json', function(data) {
 			maps[0] = JSON.parse(data);
 		});
 	};
