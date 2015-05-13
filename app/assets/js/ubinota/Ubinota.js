@@ -4,13 +4,6 @@ requirejs.config({
     three: 'vendor/three',
     OrbitControls: 'lib/OrbitControls',
     stats: 'lib/stats.min',
-    EffectComposer: 'lib/EffectComposer',
-    RenderPass: 'lib/RenderPass',
-    ShaderPass: 'lib/ShaderPass',
-    MaskPass: 'lib/MaskPass',
-    TexturePass: 'lib/TexturePass',
-    BasicShader: 'shader/BasicShader',
-    CopyShader: 'shader/CopyShader',
     Physijs: 'lib/physi',
     OBJLoader: 'lib/OBJLoader',
     MTLLoader: 'lib/MTLLoader',
@@ -28,34 +21,6 @@ requirejs.config({
   		deps: ['three'],
   		exports: 'Stats'
   	},
-  	'EffectComposer': {
-  		deps: ['three'],
-  		exports: 'EffectComposer'	
-  	},
-  	'RenderPass': {
-  		deps: ['three'],
-  		exports: 'RenderPass'	
-  	},
-    'ShaderPass': {
-  		deps: ['three'],  		
-  		exports: 'ShaderPass'
-  	},  	
-  	'TexturePass': {
-  		deps: ['three'],
-  		exports: 'TexturePass'  		  		
-  	},  
-  	'MaskPass': {
-  		deps: ['three'],
-  		exports: 'MaskPass'   
-  	},
-  	'BasicShader': {
-  		deps: ['three'],
-  		exports: 'BasicShader'    		  		
-  	},  	
-  	'CopyShader': {
-  		deps: ['three'],
-  		exports: 'CopyShader'   
-  	},
   	'Physijs': {
   		deps: ['three'],
   		exports: 'Physijs'
@@ -72,12 +37,13 @@ requirejs.config({
   	}
   }
 });
-define(['jquery', 'three', 'OrbitControls', 'stats', 'EffectComposer', 'RenderPass', 'ShaderPass', 'TexturePass', 'MaskPass', 'BasicShader', 'CopyShader', 'Physijs','OBJMTLLoader'],function($, THREE){
+define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],function($, THREE){
     var jqueryMap = {},
         configMap = {
             render_max_fps: 1 / 50
         },
         sceneMap = {},
+        toolMap = [],
         resourceInfo = [
             {
                 type: 'image',
@@ -128,9 +94,20 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'EffectComposer', 'RenderPa
                 type: 'mtl',
                 name: 'blueMtl',
                 mtlUrl: '../model/blueCube.mtl'
+            },
+            {
+                type: 'mtl',
+                name: 'greenMtl',
+                mtlUrl: '../model/greenCube.mtl'
+            },
+            {
+            	type: 'mtl',
+            	name: 'whiteMtl',
+            	mtlUrl: '../model/cube.mtl'
             }
         ],
         resources = {},
+        currentTool,
         initModule,
         initSkybox,
         initCubes,
@@ -178,8 +155,6 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'EffectComposer', 'RenderPa
         $container.append(stats.domElement);
 
         $(window).on('resize', onWindowResize);
-        loadResources();
-
         jqueryMap.$container = $container;
         sceneMap = {
             scene: scene,
@@ -191,7 +166,10 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'EffectComposer', 'RenderPa
             stats: stats,
             clock: clock,
             delta: delta
-        };        
+        };   
+
+        initLoadingPage();
+        loadResources();
     };
 	
     onWindowResize = function(){
@@ -205,6 +183,9 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'EffectComposer', 'RenderPa
         var manager = new THREE.LoadingManager(),
             loaders = {};
         manager.onLoad = onResourcesLoad;
+        manager.onProgress = function(item, loaded, total){
+        	jqueryMap.$loadingInfo.find('.info').text('Loading... ' + loaded + '/' + total);
+        };
 
         for (var i = 0; i < resourceInfo.length; i++) {
             switch(resourceInfo[i].type){
@@ -220,7 +201,7 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'EffectComposer', 'RenderPa
                     (function(i){                
                         loaders[resourceInfo[i].name] = new THREE.XHRLoader(manager);
                         loaders[resourceInfo[i].name].load(resourceInfo[i].jsonUrl, function(data){
-                            resources[resourceInfo[i].name] = data;
+                            resources[resourceInfo[i].name] = JSON.parse(data);
                         });
                     }(i));
                     break;
@@ -246,7 +227,10 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'EffectComposer', 'RenderPa
 
     onResourcesLoad = function(){
         initSkybox();
+        initTools();
+        initButton();
         initCubes();
+        setTimeout(function(){jqueryMap.$loadingPage.fadeOut();}, 3000); 
         render();
     };
 
@@ -257,24 +241,56 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'EffectComposer', 'RenderPa
             raycaster = new THREE.Raycaster(),
             intersects;
 
-            mouse.set((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
+        mouse.set((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
 
-            raycaster.setFromCamera(mouse, sceneMap.camera);
+        raycaster.setFromCamera(mouse, sceneMap.camera);
 
-            intersects = raycaster.intersectObjects(sceneMap.cubes);
+        intersects = raycaster.intersectObjects(sceneMap.cubes);
 
-            if(intersects.length) {
-                var intersect = intersects[0];
-                intersect.object.parent.traverse(function(object){
-                    if (object instanceof THREE.Mesh) {
-                        if ( object.material.name ) {
-                            var material = resources['blueMtl'].create( object.material.name );
-                            if ( material ) object.material = material;
-                        }
-                    }
+        if(intersects.length) {
+        	var intersect = intersects[0].object.parent;
+        	if(currentTool.color != intersect.color && currentTool.left){
+        		if(intersect.painted) {
+	        		for (var i = 0; i < toolMap.length; i++) {
+	    				if(toolMap[i].color == intersect.color) {
+	    					toolMap[i].left++;
+	    					toolMap[i].$tank.find('.count').text(toolMap[i].left);
+	    					toolMap[i].$tank.find('.left').height((toolMap[i].left / toolMap[i].total) * 100 + '%');
+	    				}
+	    			};
+        		}
 
-                } );
-            }
+    			intersect.traverse(function(object){
+	                if (object instanceof THREE.Mesh) {
+	                    if ( object.material.name ) {
+	                        var material = resources[currentTool.color + 'Mtl'].create( object.material.name );
+	                        if ( material ) object.material = material;
+	                    }
+	                }
+	            });
+    			intersect.painted = true;
+    			intersect.color = currentTool.color;
+    			currentTool.left --;
+    			currentTool.$tank.find('.count').text(currentTool.left);
+    			currentTool.$tank.find('.left').height((currentTool.left / currentTool.total) * 100 + '%');
+        	} else {
+        		if(intersect.painted) {
+        			intersect.traverse(function(object){
+		                if (object instanceof THREE.Mesh) {
+		                    if ( object.material.name ) {
+		                        var material = resources[intersect.origin + 'Mtl'].create( object.material.name );
+		                        if ( material ) object.material = material;
+		                    }
+		                }
+		            });
+		            intersect.color = intersect.origin;
+        			intersect.painted = false;
+        			currentTool.left ++;
+        			currentTool.$tank.find('.count').text(currentTool.left);
+        			currentTool.$tank.find('.left').height((currentTool.left / currentTool.total) * 100 + '%');
+        		}
+        	}	        
+        }
     };
 
     initSkybox = function(){
@@ -342,11 +358,11 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'EffectComposer', 'RenderPa
     };
 
     initCubes = function(){
-        var map = JSON.parse(resources['map']),
+        var cubeData = resources['map'].cubes,
             cube,
             cubes = [];
-        for (var i = 0; i < map.length; i++) {
-            switch(map[i].color){
+        for (var i = 0; i < cubeData.length; i++) {
+            switch(cubeData[i].color){
                 case 'base':
                     cube = resources['baseCube'].clone();
                     break;
@@ -368,12 +384,66 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'EffectComposer', 'RenderPa
                         cubes.push(cube.children[j]);
                     };
             }
-            cube.position.set(map[i].position.x, map[i].position.y, map[i].position.z);
+            
+            cube.painted = false;
+            cube.origin = cubeData[i].color;
+            cube.color = cubeData[i].color;
+            cube.position.set(cubeData[i].position.x, cubeData[i].position.y, cubeData[i].position.z);
             sceneMap.scene.add(cube);
             sceneMap.cubes = cubes;
-
-            jqueryMap.$container.on('dblclick', onDoubleClick);
         };
+        jqueryMap.$container.on('dblclick', onDoubleClick);
+    };
+
+    initLoadingPage = function(){
+    	jqueryMap.$container.append('<div id="loadingPage"><div class="infoBox"><div class="loader"><img src="../image/pointer_cursor.ico"/></div><div class="info"></div></div></div>');
+    	var $loadingPage = jqueryMap.$container.find('#loadingPage');
+    	$loadingPage.css({'position': 'absolute', 'top': 0, 'left': 0, 'width': '100%', 'height': '100%', 'z-index': 10});
+    	jqueryMap.$loadingPage = $loadingPage;
+    	jqueryMap.$loadingInfo = $loadingPage.find('.infoBox');
+    };
+
+    initTools = function(){
+    	var typeData = resources['map'].types,
+    		tools = [];
+    	jqueryMap.$container.append('<div id="tanks"></div>');
+    	jqueryMap.$container.append('<div id="brushes"></div>');
+
+    	var $tanks = jqueryMap.$container.find('#tanks'),
+    		$brushes = jqueryMap.$container.find('#brushes');
+
+    	for (var i = 0; i < typeData.length; i++) {
+    		var tank = '<li class="tank"><div class="count">' + typeData[i].number +  '</div><div class="tube"><img class="full" src="../image/fioleVide.png"/><img class="left" src="../image/paints_' + typeData[i].color + '.png" /><img class="dec" src="../image/dec_' + typeData[i].color + '.png" /></div></li>',
+    			brush = '<li class="brush"><img src="../image/brush_' + typeData[i].color + '.png" ></li>';
+    		$tanks.append(tank);
+    		$brushes.append(brush);
+
+    		var tool = {
+    			color: typeData[i].color,
+    			total: typeData[i].number,
+    			left: typeData[i].number,
+    			$tank: $tanks.children().last(),
+    			$brush: $brushes.children().last()
+    		};
+    		toolMap.push(tool);
+    	};
+    	currentTool = toolMap[0];
+
+    	$tanks.children().first().show();
+    	$brushes.children().on('click', function(){
+    		jqueryMap.$tanks.children().hide();
+    		currentTool = toolMap[$(this).index()];
+    		currentTool.$tank.show();
+    	});
+
+    	jqueryMap.$tanks = $tanks;
+    	jqueryMap.$brushes = $brushes;
+    };
+
+    initButton = function(){
+    	jqueryMap.$container.append('<div id="button"><img src="../image/button.png"></div>');
+    	var $button = jqueryMap.$container.find('#button');
+    	jqueryMap.$button = $button;
     };
 
     render = function(){
