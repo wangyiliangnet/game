@@ -43,6 +43,7 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
             render_max_fps: 1 / 50
         },
         sceneMap = {},
+        statusMap = {simulate: false},
         toolMap = [],
         resourceInfo = [
             {
@@ -125,7 +126,7 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
         Physijs.scripts.ammo = 'ammo.js';
 
         scene = new Physijs.Scene();
-        scene.setGravity(new THREE.Vector3(0, -50, 0));
+        scene.setGravity(new THREE.Vector3(0, -80, 0));
 
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.5, 20001);
         ambientLight = new THREE.AmbientLight( 0x101030 );
@@ -208,7 +209,7 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
                 case 'model':
                     (function(i){                
                         loaders[resourceInfo[i].name] = new THREE.OBJMTLLoader(manager);
-                        loaders[resourceInfo[i].name].load(resourceInfo[i].modelUrl, resourceInfo[i].mtlUrl, function(data){
+                        loaders[resourceInfo[i].name].load(resourceInfo[i].modelUrl, resourceInfo[i].mtlUrl, function(data){    
                             resources[resourceInfo[i].name] = data;
                         });        
                     }(i));
@@ -241,14 +242,16 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
             raycaster = new THREE.Raycaster(),
             intersects;
 
+        console.log(sceneMap.cubes);
         mouse.set((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
 
         raycaster.setFromCamera(mouse, sceneMap.camera);
 
-        intersects = raycaster.intersectObjects(sceneMap.cubes);
+        intersects = raycaster.intersectObjects(sceneMap.meshes);
 
         if(intersects.length) {
-        	var intersect = intersects[0].object.parent;
+        	var intersect = intersects[0].object.parent ? intersects[0].object.parent : intersects[0].object;
+        	console.log(intersect);
         	if(currentTool.color != intersect.color && currentTool.left){
         		if(intersect.painted) {
 	        		for (var i = 0; i < toolMap.length; i++) {
@@ -359,40 +362,50 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
 
     initCubes = function(){
         var cubeData = resources['map'].cubes,
+            data,
+            children,
             cube,
-            cubes = [];
+            cubes = [],
+            meshes = [];
+
         for (var i = 0; i < cubeData.length; i++) {
             switch(cubeData[i].color){
                 case 'base':
-                    cube = resources['baseCube'].clone();
+                    data = resources['baseCube'].clone();
                     break;
                 case 'blue':
-                    cube = resources['blueCube'].clone();
-                    for (var j = 0; j < cube.children.length; j++) {
-                        cubes.push(cube.children[j]);
-                    };
+                    data = resources['blueCube'].clone();
                     break;
                 case 'house1':
-                    cube = resources['house1'].clone();
+                    data = resources['house1'].clone();
                     break;
                 case 'house2':
-                    cube = resources['house2'].clone();
+                    data = resources['house2'].clone();
                     break;                                          
                 default:
-                    cube = resources['whiteCube'].clone();
-                    for (var j = 0; j < cube.children.length; j++) {
-                        cubes.push(cube.children[j]);
-                    };
+                    data = resources['whiteCube'].clone();
             }
-            
+
+            children = data.children;
+            cube = new Physijs.ConvexMesh(children[0].geometry, children[0].material);
+            meshes.push(cube);
+            for (var j = 1; j < children.length; j++) {
+            	var child = new Physijs.ConvexMesh(children[j].geometry, children[j].material);
+            	cube.add(child);
+            	meshes.push(child);
+            };
+
             cube.painted = false;
             cube.origin = cubeData[i].color;
             cube.color = cubeData[i].color;
             cube.position.set(cubeData[i].position.x, cubeData[i].position.y, cubeData[i].position.z);
+            cubes.push(cube);
             sceneMap.scene.add(cube);
-            sceneMap.cubes = cubes;
         };
+
         jqueryMap.$container.on('dblclick', onDoubleClick);
+        sceneMap.cubes = cubes;
+        sceneMap.meshes = meshes;
     };
 
     initLoadingPage = function(){
@@ -443,7 +456,12 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
     initButton = function(){
     	jqueryMap.$container.append('<div id="button"><img src="../image/button.png"></div>');
     	var $button = jqueryMap.$container.find('#button');
+    	$button.on('click', onButtonClick);
     	jqueryMap.$button = $button;
+    };
+
+    onButtonClick = function(){
+    	statusMap.simulate = true;
     };
 
     render = function(){
@@ -453,6 +471,9 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
         while(sceneMap.delta >= configMap.render_max_fps){
             sceneMap.skybox.rotation.y -= 0.0005;
             sceneMap.delta -= configMap.render_max_fps;
+        }
+        if(statusMap.simulate){
+        	sceneMap.scene.simulate();
         }
 
         sceneMap.stats.update();
