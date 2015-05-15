@@ -58,8 +58,13 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
             },
             {
                 type: 'json',
-                name: 'map',
+                name: 'map1',
                 jsonUrl: '../js/map1.json'
+            },
+            {
+                type: 'json',
+                name: 'map2',
+                jsonUrl: '../js/map2.json'
             },
             {
                 type: 'model',
@@ -126,7 +131,7 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
         Physijs.scripts.ammo = 'ammo.js';
 
         scene = new Physijs.Scene();
-        scene.setGravity(new THREE.Vector3(0, -80, 0));
+        scene.setGravity(new THREE.Vector3(0, -100, 0));
 
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.5, 20001);
         ambientLight = new THREE.AmbientLight( 0x101030 );
@@ -227,13 +232,8 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
     };
 
     onResourcesLoad = function(){
-        initSkybox();
-        initTools();
-        initButton();
-        initCubes();
-        setTimeout(initStart, 3000);
-        
-        render();
+    	setTimeout(initStart, 3000);
+        initMap();
     };
 
     onDoubleClick = function(event){
@@ -361,11 +361,12 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
         sceneMap.skybg = skybg;
     };
 
-    initCubes = function(){
-        var cubeData = resources['map'].cubes,
+    initCubes = function(mission){
+        var cubeData = resources['map' + mission].cubes,
             data,
             children,
             cube,
+            weight,
             cubes = [],
             meshes = [];
 
@@ -388,10 +389,11 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
             }
 
             children = data.children;
-            cube = new Physijs.ConvexMesh(children[0].geometry, children[0].material);
+            weight = cubeData[i].color == 'base' ? 0 : 1;
+            cube = new Physijs.ConvexMesh(children[0].geometry, children[0].material, weight);
             meshes.push(cube);
             for (var j = 1; j < children.length; j++) {
-            	var child = new Physijs.ConvexMesh(children[j].geometry, children[j].material);
+            	var child = new Physijs.ConvexMesh(children[j].geometry, children[j].material, weight);
             	cube.add(child);
             	meshes.push(child);
             };
@@ -419,8 +421,8 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
     	jqueryMap.$loadingInfo = $loadingPage.find('.infoBox');
     };
 
-    initTools = function(){
-    	var typeData = resources['map'].types,
+    initTools = function(mission){
+    	var typeData = resources['map' + mission].types,
     		tools = [];
     	jqueryMap.$container.append('<div id="tanks"></div>');
     	jqueryMap.$container.append('<div id="brushes"></div>');
@@ -470,11 +472,35 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
     };
 
     initMap = function(){
+    	jqueryMap.$container.append('<div id="map"><div class="box"><img class="map" src="../image/map.jpg"/></div></div>');
+    	var points = [[11, 44], [9, 72]],
+    		arrows = [[11, 32], [9, 60]],
+    		$map = jqueryMap.$container.find('#map'),
+    		$box = $map.find('.box');
 
+    	for (var i = 0; i < points.length; i++) {
+    		$box.append('<div class="arrow"><img src="../image/arrow.png" /></div><div class="point" ><img src="../image/point.png" /></div>');
+    		var $point = $box.find('.point').last(),
+    			$arrow = $box.find('.arrow').last();
+    		$point.css({'left': points[i][0] + '%', 'top': points[i][1] + '%'});
+    		$arrow.css({'left': arrows[i][0] + '%', 'top': arrows[i][1] + '%'});
+    	}
+    	$box.find('.point').on('click', function(){initMission($(this).index() / 2);});
+    	jqueryMap.$map = $map;
     };
 
     onButtonClick = function(){
     	statusMap.simulate = true;
+    };
+
+    initMission = function(i){
+    	console.log(i);
+    	initSkybox();
+        initTools(i);
+        initButton();
+        initCubes(i);
+        render();
+        jqueryMap.$map.fadeOut();
     };
 
     render = function(){
