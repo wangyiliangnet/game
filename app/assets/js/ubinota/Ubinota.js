@@ -231,7 +231,8 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
         initTools();
         initButton();
         initCubes();
-        setTimeout(function(){jqueryMap.$loadingPage.fadeOut();}, 3000); 
+        setTimeout(initStart, 3000);
+        
         render();
     };
 
@@ -409,10 +410,12 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
     };
 
     initLoadingPage = function(){
-    	jqueryMap.$container.append('<div id="loadingPage"><div class="infoBox"><div class="loader"><img src="../image/pointer_cursor.ico"/></div><div class="info"></div></div></div>');
-    	var $loadingPage = jqueryMap.$container.find('#loadingPage');
+    	jqueryMap.$container.append('<div id="loadingPage"><div id="start">Start</div><div class="infoBox"><div class="loader"><img src="../image/pointer_cursor.ico"/></div><div class="info"></div></div></div>');
+    	var $loadingPage = jqueryMap.$container.find('#loadingPage'),
+    		$start = $loadingPage.find('#start');
     	$loadingPage.css({'position': 'absolute', 'top': 0, 'left': 0, 'width': '100%', 'height': '100%', 'z-index': 10});
     	jqueryMap.$loadingPage = $loadingPage;
+    	jqueryMap.$start = $start;
     	jqueryMap.$loadingInfo = $loadingPage.find('.infoBox');
     };
 
@@ -458,6 +461,16 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
     	var $button = jqueryMap.$container.find('#button');
     	$button.on('click', onButtonClick);
     	jqueryMap.$button = $button;
+    };
+
+    initStart = function(){
+    	jqueryMap.$start.fadeIn(1000).on('click', function(){
+    		jqueryMap.$loadingPage.fadeOut();
+    	});
+    };
+
+    initMap = function(){
+
     };
 
     onButtonClick = function(){

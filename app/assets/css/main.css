@@ -8,9 +8,30 @@ body {
 #container {
     cursor: url(../image/pointer_cursor.ico), default;
 }
+
 #loadingPage {
     background: url(../image/loading2.jpg) no-repeat center top;
     background-size: cover;
+}
+#loadingPage #start {
+    display: none;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 200px;
+    height: 200px;
+    line-height: 200px;
+    margin-left: -100px;
+    margin-top: -100px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transition: background 0.8s;
+    font-size: 30px;
+    color: #333;
+    text-align: center;
+}
+#loadingPage #start:hover {
+    background: rgba(255, 255, 255, 0.7);
 }
 #loadingPage .infoBox {
     position: absolute;
@@ -27,6 +48,7 @@ body {
   padding-left: 0%;
   background: #5d8dbd;
   border-radius: 0 12px 12px 0;
+  transition: padding-left 0.5s;
   -webkit-animation: brush 6s infinite linear;
   animation: brush 6s infinite linear;
 }
@@ -39,7 +61,6 @@ body {
   0% { padding-left: 0%; }
   100% { padding-left: 100%;}
 }
- 
 @keyframes brush {
   0% { padding-left: 0%; } 
   100% { padding-left: 100%; }
@@ -50,6 +71,19 @@ body {
     width: 100%;
     text-align: center;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #chapitre{
     position: absolute;
