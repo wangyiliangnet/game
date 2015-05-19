@@ -210,11 +210,11 @@ define(['jquery', 'three', 'Physijs', 'OrbitControls', 'OBJMTLLoader'],function(
                 var cube = cubes[j],
                     connected = [];
                 for (var i = 0; i < cubes.length; i++) {
-                    if (cubes[i].position.x == cube.position.x && cubes[i].position.y == cube.position.y && (cubes[i].position.z == cube.position.z + 50 || cubes[i].position.z == cube.position.z - 50) && cubes[i].color == cube.color) {
+                    if (cubes[i].position.x == cube.position.x && cubes[i].position.y == cube.position.y && (cubes[i].position.z == cube.position.z + 50 || cubes[i].position.z == cube.position.z - 50)) {
                         connected.push(i);
-                    } else if (cubes[i].position.z == cube.position.z && cubes[i].position.y == cube.position.y && (cubes[i].position.x == cube.position.x + 50 || cubes[i].position.x == cube.position.x - 50) && cubes[i].color == cube.color) {
+                    } else if (cubes[i].position.z == cube.position.z && cubes[i].position.y == cube.position.y && (cubes[i].position.x == cube.position.x + 50 || cubes[i].position.x == cube.position.x - 50)) {
                         connected.push(i);
-                    } else if (cubes[i].position.x == cube.position.x && cubes[i].position.z == cube.position.z && (cubes[i].position.y == cube.position.y + 50 || cubes[i].position.y == cube.position.y - 50) && cubes[i].color == cube.color) {
+                    } else if (cubes[i].position.x == cube.position.x && cubes[i].position.z == cube.position.z && (cubes[i].position.y == cube.position.y + 50 || cubes[i].position.y == cube.position.y - 50)) {
                         connected.push(i);
                     }
                 };

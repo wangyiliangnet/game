@@ -47,74 +47,15 @@ define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         statusMap = {simulate: false},
         toolMap = [],
         soundMap = {},
-        resourceInfo = [
-            {
-                type: 'image',
-                name: 'skybox',
-                imageUrl: '../texture/sky.png'
-            },
-            {
-                type: 'image',
-                name: 'skybg',
-                imageUrl: '../texture/skybg.png'                
-            },
-            {
-                type: 'json',
-                name: 'map1',
-                jsonUrl: '../js/map1.json'
-            },
-            {
-                type: 'json',
-                name: 'map2',
-                jsonUrl: '../js/map2.json'
-            },
-            {
-                type: 'model',
-                name: 'whiteCube',
-                modelUrl: '../model/cube.obj',
-                mtlUrl: '../model/cube.mtl'
-            },
-            {
-                type: 'model',
-                name: 'blueCube',
-                modelUrl: '../model/cube.obj',
-                mtlUrl: '../model/blueCube.mtl'
-            },
-            {
-                type: 'model',
-                name: 'baseCube',
-                modelUrl: '../model/base.obj',
-                mtlUrl: '../model/base.mtl'
-            },            
-            {
-                type: 'model',
-                name: 'house1',
-                modelUrl: '../model/house1.obj',
-                mtlUrl: '../model/house1.mtl'
-            },
-            {
-                type: 'model',
-                name: 'house2',
-                modelUrl: '../model/house2.obj',
-                mtlUrl: '../model/house2.mtl'
-            },
-            {
-                type: 'mtl',
-                name: 'blueMtl',
-                mtlUrl: '../model/blueCube.mtl'
-            },
-            {
-                type: 'mtl',
-                name: 'greenMtl',
-                mtlUrl: '../model/greenCube.mtl'
-            },
-            {
-            	type: 'mtl',
-            	name: 'whiteMtl',
-            	mtlUrl: '../model/cube.mtl'
-            }
-        ],
-        resources = {},
+        resourceInfo = {
+            maps: [{url: '../js/map1.json'}],
+            images: [{name: 'skybox', url: '../texture/sky.png'}, {name: 'skybg', url: '../texture/skybg.png'}],
+            cubes: [{color: 'white', model: '../model/cube.obj', mtl: '../model/whiteCube.mtl'}, {color: 'blue', model: '../model/cube.obj', mtl: '../model/blueCube.mtl'}],
+            bases: [{color: 'blue', model: '../model/base.obj', mtl: '../model/blueBase.mtl'}],
+            houses: [{color: 'white', model: '../model/house1.obj', mtl: '../model/house1.mtl'}, {color: 'yellow', model: '../model/house2.obj', mtl: '../model/house2.mtl'}],
+            mtls: [{color: 'white', url: '../model/whiteCube.mtl'}, {color: 'blue', url: '../model/blueCube.mtl'}]
+        },
+        resources = {maps: [], images: {}, cubes: {}, bases: {}, houses: {}, mtls: {}},
         currentTool;
 
     var initModule = function(){
@@ -186,48 +127,64 @@ define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
     };
 
     var loadResources = function(){
-        var manager = new THREE.LoadingManager(),
-            loaders = {};
+        var manager = new THREE.LoadingManager();
         manager.onLoad = onResourcesLoad;
         manager.onProgress = function(item, loaded, total){
         	jqueryMap.$loadingInfo.find('.info').text('Loading... ' + loaded + '/' + total);
         };
 
-        for (var i = 0; i < resourceInfo.length; i++) {
-            switch(resourceInfo[i].type){
-                case 'image':
-                    (function(i){
-                        loaders[resourceInfo[i].name] = new THREE.ImageLoader(manager);
-                        loaders[resourceInfo[i].name].load(resourceInfo[i].imageUrl, function(image){
-                            resources[resourceInfo[i].name] = image;
-                        });
-                    }(i));
-                    break;              
-                case 'json':
-                    (function(i){                
-                        loaders[resourceInfo[i].name] = new THREE.XHRLoader(manager);
-                        loaders[resourceInfo[i].name].load(resourceInfo[i].jsonUrl, function(data){
-                            resources[resourceInfo[i].name] = JSON.parse(data);
-                        });
-                    }(i));
-                    break;
-                case 'model':
-                    (function(i){                
-                        loaders[resourceInfo[i].name] = new THREE.OBJMTLLoader(manager);
-                        loaders[resourceInfo[i].name].load(resourceInfo[i].modelUrl, resourceInfo[i].mtlUrl, function(data){    
-                            resources[resourceInfo[i].name] = data;
-                        });        
-                    }(i));
-                    break;
-                case 'mtl':
-                    (function(i){                
-                        loaders[resourceInfo[i].name] = new THREE.MTLLoader('../model/', manager);
-                        loaders[resourceInfo[i].name].load(resourceInfo[i].mtlUrl, function(data){
-                            resources[resourceInfo[i].name] = data;
-                        });        
-                    }(i));
-                    break;
-            } 
+        for (var i = 0; i < resourceInfo.images.length; i++) {
+            var loader = new THREE.ImageLoader(manager);
+            (function(i){
+                loader.load(resourceInfo.images[i].url, function(image){
+                    resources.images[resourceInfo.images[i].name] = image;
+                });
+            }(i));
+        };
+
+        for (var i = 0; i < resourceInfo.cubes.length; i++) {
+            var loader = new THREE.OBJMTLLoader(manager);
+            (function(i){
+                loader.load(resourceInfo.cubes[i].model, resourceInfo.cubes[i].mtl, function(data){    
+                    resources.cubes[resourceInfo.cubes[i].color] = data;
+                });
+            }(i));
+        };
+
+        for (var i = 0; i < resourceInfo.bases.length; i++) {
+            var loader = new THREE.OBJMTLLoader(manager);
+            (function(i){
+                loader.load(resourceInfo.bases[i].model, resourceInfo.bases[i].mtl, function(data){    
+                    resources.bases[resourceInfo.bases[i].color] = data;
+                });
+            }(i));            
+        };
+
+        for (var i = 0; i < resourceInfo.houses.length; i++) {
+            var loader = new THREE.OBJMTLLoader(manager);
+            (function(i){
+                loader.load(resourceInfo.houses[i].model, resourceInfo.houses[i].mtl, function(data){    
+                    resources.houses[resourceInfo.houses[i].color] = data;
+                });                
+            }(i));                          
+        };
+
+        for (var i = 0; i < resourceInfo.maps.length; i++) {
+            var loader = new THREE.XHRLoader(manager);
+            (function(i){
+                loader.load(resourceInfo.maps[i].url, function(data){
+                    resources.maps[i] = JSON.parse(data);
+                });            
+            }(i));              
+        };
+
+        for (var i = 0; i < resourceInfo.mtls.length; i++) {
+            var loader = new THREE.MTLLoader('../model/', manager);
+            (function(i){                
+                loader.load(resourceInfo.mtls[i].url, function(data){
+                    resources.mtls[resourceInfo.mtls[i].color] = data;
+                });        
+            }(i));            
         };
     };
 
@@ -248,52 +205,57 @@ define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
 
         raycaster.setFromCamera(mouse, sceneMap.camera);
 
-        intersects = raycaster.intersectObjects(sceneMap.cubes);
+        intersects = raycaster.intersectObjects(sceneMap.meshes);
 
         if(intersects.length) {
         	var intersect = intersects[0].object.parent ? intersects[0].object.parent : intersects[0].object;
-        	console.log(currentTool.color + ' ' + intersect.color);
-        	if(currentTool.color != intersect.color && currentTool.left){
-        		if(intersect.painted) {
-	        		for (var i = 0; i < toolMap.length; i++) {
-	    				if(toolMap[i].color == intersect.color) {
-	    					toolMap[i].left++;
-	    					toolMap[i].$tank.find('.count').text(toolMap[i].left);
-	    					toolMap[i].$tank.find('.left').height((toolMap[i].left / toolMap[i].total) * 100 + '%');
-	    				}
-	    			};
-        		}
-
-    			intersect.traverse(function(object){
-	                if (object instanceof THREE.Mesh) {
-	                    if ( object.material.name ) {
-	                        var material = resources[currentTool.color + 'Mtl'].create( object.material.name );
-	                        if ( material ) object.material = material;
-	                    }
-	                }
-	            });
-    			intersect.painted = true;
-    			intersect.color = currentTool.color;
-    			currentTool.left --;
-    			currentTool.$tank.find('.count').text(currentTool.left);
-    			currentTool.$tank.find('.left').height((currentTool.left / currentTool.total) * 100 + '%');
-        	} else {
-        		if(intersect.painted) {
-        			intersect.traverse(function(object){
-		                if (object instanceof THREE.Mesh) {
-		                    if ( object.material.name ) {
-		                        var material = resources[intersect.origin + 'Mtl'].create( object.material.name );
-		                        if ( material ) object.material = material;
-		                    }
-		                }
-		            });
-		            intersect.color = intersect.origin;
-        			intersect.painted = false;
-        			currentTool.left ++;
-        			currentTool.$tank.find('.count').text(currentTool.left);
-        			currentTool.$tank.find('.left').height((currentTool.left / currentTool.total) * 100 + '%');
-        		}
-        	}	        
+        	
+            if(intersect.type == 'cube') {
+                if(currentTool.color != intersect.color && currentTool.left) {
+                    if(intersect.painted) {
+                        for (var i = 0; i < toolMap.length; i++) {
+                            if(toolMap[i].color == intersect.color) {
+                                toolMap[i].left++;
+                                toolMap[i].$tank.find('.count').text(toolMap[i].left);
+                                toolMap[i].$tank.find('.left').height((toolMap[i].left / toolMap[i].total) * 100 + '%');
+                            }
+                        };               
+                    }
+                    intersect.traverse(function(object){
+                        if (object instanceof THREE.Mesh) {
+                            if (object.material.name) {
+                                var material = resources.mtls[currentTool.color].create(object.material.name);
+                                if(material){
+                                    object.material = material;
+                                }
+                            }
+                        }
+                    });
+                    intersect.painted = true;
+                    intersect.color = currentTool.color;
+                    currentTool.left --;
+                    currentTool.$tank.find('.count').text(currentTool.left);
+                    currentTool.$tank.find('.left').height((currentTool.left / currentTool.total) * 100 + '%');                                     
+                } else {
+                    if(intersect.painted){
+                        intersect.traverse(function(object){
+                            if (object instanceof THREE.Mesh) {
+                                if (object.material.name) {
+                                    var material = resources.mtls[intersect.origin].create(object.material.name);
+                                    if (material){
+                                        object.material = material;
+                                    }
+                                }
+                            }
+                        });
+                        intersect.color = intersect.origin;
+                        intersect.painted = false;
+                        currentTool.left ++;
+                        currentTool.$tank.find('.count').text(currentTool.left);
+                        currentTool.$tank.find('.left').height((currentTool.left / currentTool.total) * 100 + '%');
+                    }                    
+                }
+            }       
         }
     };
 
@@ -326,8 +288,8 @@ define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         skyboxMap.flipY = false;
         skybgMap.flipY = false;
 
-        loadMap(resources['skybox'], skyboxMap);
-        loadMap(resources['skybg'], skybgMap);
+        loadMap(resources.images['skybox'], skyboxMap);
+        loadMap(resources.images['skybg'], skybgMap);
 
         skyboxShader = THREE.ShaderLib['cube'];
         skyboxShader.uniforms['tCube'].value = skyboxMap;
@@ -362,7 +324,7 @@ define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
     };
 
     var initCubes = function(mission){
-        var cubeData = resources['map' + mission].cubes,
+        var cubeData = resources.maps[mission].cubes,
             data,
             children,
             cube,
@@ -371,25 +333,21 @@ define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
             meshes = [];
 
         for (var i = 0; i < cubeData.length; i++) {
-            switch(cubeData[i].color){
+            mass = 1;
+            switch(cubeData[i].type){
                 case 'base':
-                    data = resources['baseCube'].clone();
+                    data = resources.bases[cubeData[i].color].clone();
+                    mass = 0;
                     break;
-                case 'blue':
-                    data = resources['blueCube'].clone();
+                case 'cube':
+                    data = resources.cubes[cubeData[i].color].clone();
                     break;
-                case 'house1':
-                    data = resources['house1'].clone();
+                case 'house':
+                    data = resources.houses[cubeData[i].color].clone();
                     break;
-                case 'house2':
-                    data = resources['house2'].clone();
-                    break;                                          
-                default:
-                    data = resources['whiteCube'].clone();
             }
 
             children = data.children;
-            mass = cubeData[i].color == 'base' ? 0 : 1;
             cube = new Physijs.ConvexMesh(children[0].geometry, children[0].material, mass);
             meshes.push(cube);
             for (var j = 1; j < children.length; j++) {
@@ -398,12 +356,15 @@ define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
             	meshes.push(child);
             };
 
+            cube.type = cubeData[i].type;
             cube.painted = false;
             cube.origin = cubeData[i].color;
             cube.color = cubeData[i].color;
+            cube.connected = cubeData[i].connected;
             cube.position.set(cubeData[i].position.x, cubeData[i].position.y, cubeData[i].position.z);
             cubes.push(cube);
             sceneMap.scene.add(cube);
+            console.log(cube.mass);
         };
 
         jqueryMap.$container.on('dblclick', onDoubleClick);
@@ -422,7 +383,7 @@ define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
     };
 
     var initTools = function(mission){
-    	var typeData = resources['map' + mission].types,
+    	var typeData = resources.maps[mission].types,
     		tools = [];
     	jqueryMap.$container.append('<div id="tanks"></div>');
     	jqueryMap.$container.append('<div id="brushes"></div>');
@@ -486,38 +447,32 @@ define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
     		$point.css({'left': points[i][0] + '%', 'top': points[i][1] + '%'});
     		$arrow.css({'left': arrows[i][0] + '%', 'top': arrows[i][1] + '%'});
     	}
-    	$box.find('.point').on('click', function(){initMission($(this).index() / 2);});
+    	$box.find('.point').on('click', function(){initMission($(this).index() / 2 - 1);});
     	jqueryMap.$map = $map;
     };
 
     var onButtonClick = function(){
+        console.log(statusMap.simulate);
     	var cubes = sceneMap.cubes,
     		checkConnect = function(cube){
-    			var position = cube.position;
-    			cubes.splice(cubes.indexOf(cube), 1);
-    			for (var i = 0; i < cubes.length; i++) {
-    				if(cubes[i].mass){
-	    				if (cubes[i].position.x == cube.position.x && cubes[i].position.y == cube.position.y && (cubes[i].position.z == cube.position.z + 50 || cubes[i].position.z == cube.position.z - 50) && cubes[i].color == cube.color) {
-	    					cubes[i].mass = 0;
-	    					checkConnect(cubes[i]);
-	    				} else if (cubes[i].position.z == cube.position.z && cubes[i].position.y == cube.position.y && (cubes[i].position.x == cube.position.x + 50 || cubes[i].position.x == cube.position.x - 50) && cubes[i].color == cube.color) {
-	    					cubes[i].mass = 0;
-	    					checkConnect(cubes[i]);
-	    				} else if (cubes[i].position.x == cube.position.x && cubes[i].position.z == cube.position.z && (cubes[i].position.y == cube.position.y + 50 || cubes[i].position.y == cube.position.y - 50) && cubes[i].color == cube.color) {
-	    					cubes[i].mass = 0;
-	    					checkConnect(cubes[i]);
-	    				}
-    				}
-    			};
+                for (var i = 0; i < cube.connected.length; i++) {
+                    if(cubes[cube.connected[i]].mass && cubes[cube.connected[i]].color == cube.color){
+                        cubes[cube.connected[i]].mass = 0;
+                        checkConnect(cubes[cube.connected[i]]);                        
+                    }
+                };
     		};
 
     	for (var i = 0; i < cubes.length; i++) {
-    		if(!cubes[i].mass){
-    			cubes[i].color = 'blue';
+    		if(cubes[i].type == 'base'){
     			checkConnect(cubes[i]);
     		}
     	};
     	statusMap.simulate = true;
+        for (var i = 0; i < cubes.length; i++) {
+            console.log(cubes[i].mass);
+        };
+        console.log(statusMap.simulate);
     };
 
     var initMission = function(i){
@@ -536,7 +491,6 @@ define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
     	for (var i = 0; i < soundInfo.length; i++) {
     		soundMap[soundInfo[i].name] = new buzz.sound('../sound/' + soundInfo[i].name + '.ogg', {loop: soundInfo[i].loop});
     	};
-    	console.log(soundMap);
     	buzz.all().load();
     };
 
