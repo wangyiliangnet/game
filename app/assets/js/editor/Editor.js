@@ -206,8 +206,19 @@ define(['jquery', 'three', 'Physijs', 'OrbitControls', 'OBJMTLLoader'],function(
                 number = prompt('颜料数量');
             }
             
-            for (var i = 0; i < cubes.length; i++) {
-                data.cubes.push({position: cubes[i].position, type: cubes[i].type, color: cubes[i].color});
+            for (var j = 0; j < cubes.length; j++) {
+                var cube = cubes[j],
+                    connected = [];
+                for (var i = 0; i < cubes.length; i++) {
+                    if (cubes[i].position.x == cube.position.x && cubes[i].position.y == cube.position.y && (cubes[i].position.z == cube.position.z + 50 || cubes[i].position.z == cube.position.z - 50) && cubes[i].color == cube.color) {
+                        connected.push(i);
+                    } else if (cubes[i].position.z == cube.position.z && cubes[i].position.y == cube.position.y && (cubes[i].position.x == cube.position.x + 50 || cubes[i].position.x == cube.position.x - 50) && cubes[i].color == cube.color) {
+                        connected.push(i);
+                    } else if (cubes[i].position.x == cube.position.x && cubes[i].position.z == cube.position.z && (cubes[i].position.y == cube.position.y + 50 || cubes[i].position.y == cube.position.y - 50) && cubes[i].color == cube.color) {
+                        connected.push(i);
+                    }
+                };
+                data.cubes.push({position: cubes[j].position, type: cubes[j].type, color: cubes[j].color, connected: connected});
             };
 
             var urlObject = window.URL || window.webkitURL || window,
