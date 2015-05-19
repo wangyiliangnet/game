@@ -74,7 +74,7 @@ body {
 
 #tanks {
     position: absolute;
-    top: 25%;
+    top: 18%;
     left: 1%;
     width: 5%;
 }
@@ -165,6 +165,6 @@ body {
 }
 @-webkit-keyframes jump {
     0% {margin-top: 0;}
-    100% {margin-top: 20px;}
+    100% {margin-top: 16px;}
 }
 

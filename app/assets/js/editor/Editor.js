@@ -1,26 +1,42 @@
 requirejs.config({
-    paths: {
-        jquery: 'lib/jquery',
-        three: 'vendor/three',
-        OrbitControls: 'lib/OrbitControls'
+  paths: {
+    jquery: 'lib/jquery',
+    three: 'vendor/three',
+    OrbitControls: 'lib/OrbitControls',
+    Physijs: 'lib/physi',
+    OBJLoader: 'lib/OBJLoader',
+    MTLLoader: 'lib/MTLLoader',
+    OBJMTLLoader: 'lib/OBJMTLLoader'
+  },
+  shim: {
+    'three': {
+        exports: 'THREE'
     },
-    shim: {
-        'three': {
-            exports: 'THREE'
-        },
-        'OrbitControls' : {
-            deps: ['three'],
-            exports: 'THREE.OrbitControls'
-        }
+    'OrbitControls' : {
+        deps: ['three'],
+        exports: 'THREE.OrbitControls'
+    },
+    'Physijs': {
+        deps: ['three'],
+        exports: 'Physijs'
+    },
+    'OBJLoader': {
+        deps: ['three'] 
+    },
+    'MTLLoader': {
+        deps: ['three']
+    },
+    'OBJMTLLoader': {
+        deps: ['three','OBJLoader','MTLLoader'],
+        exports: 'OBJMTLLoader'
     }
+  }
 });
 
-define(['jquery', 'three', 'OrbitControls'],function($, THREE){
-    var $container,  
-        camera, scene, renderer, controls, ambientLight, directionalLight,
-        objects, rollOverCube, cubeGeo, cubeMaterial, plane,
-        raycaster, mouse, isShiftDown = false,
-        data = [],
+define(['jquery', 'three', 'Physijs', 'OrbitControls', 'OBJMTLLoader'],function($, THREE){
+    var jqueryMap = {},
+        sceneMap = {},
+        objects = [],
         materials = [
             {
                 color: 'white',
@@ -32,43 +48,45 @@ define(['jquery', 'three', 'OrbitControls'],function($, THREE){
                 color: 'yellow',
                 url: 'cube_yellow.png',
                 isBase: false,
-                material: THREE.ImageUtils.loadTexture('texture/cube_yellow.png')                
+                material: THREE.ImageUtils.loadTexture('texture/cube_yellow.png')          
             },
             {
                 color: 'blue',
                 url: 'cube_blue.png',
                 isBase: false,
-                material: THREE.ImageUtils.loadTexture('texture/cube_blue.png')                
+                material: THREE.ImageUtils.loadTexture('texture/cube_blue.png')       
             },
             {
                 color: 'green',
                 url: 'cube_green.png',
                 isBase: false,
-                material: THREE.ImageUtils.loadTexture('texture/cube_green.png')                
+                material: THREE.ImageUtils.loadTexture('texture/cube_green.png')          
             },
             {
                 color: 'red',
                 url: 'cube_red.png',
                 isBase: false,
-                material: THREE.ImageUtils.loadTexture('texture/cube_red.png')                  
-            },
-            {
-                color: 'base',
-                url: 'cube_base.png',
-                isBase: false,
-                material: THREE.ImageUtils.loadTexture('texture/cube_base.png')                
+                material: THREE.ImageUtils.loadTexture('texture/cube_red.png')              
             }
         ],
-        currMaterial = materials[0];
+        cubeGeo = new THREE.BoxGeometry( 50, 50, 50 ),
+        currentIndex = 0,
+        currentType = 'cube',
+        cubes = [];
 
-    var init = function(){
+
+    var initModule = function(){
+        var $container, scene, camera, ambientLight, directionalLight, renderer, controls, mouse, raycaster;
+
         $(document.body).append('<div id="container"></div>');
         $container = $(document.body).find('#container');
+
+        Physijs.scripts.worker = 'js/lib/physijs_worker.js';
+        Physijs.scripts.ammo = 'ammo.js';
 
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 300000);
         camera.position.set( 500, 800, 1300 );
-        //camera.lookAt( new THREE.Vector3() );
 
         ambientLight = new THREE.AmbientLight( 0x606060 );
         scene.add( ambientLight );
@@ -90,25 +108,31 @@ define(['jquery', 'three', 'OrbitControls'],function($, THREE){
         controls.maxPolarAngle = Math.PI * 0.5;
         controls.center.set(0, 100, 0);
 
-        objects = [];
-        cubeGeo = new THREE.BoxGeometry( 50, 50, 50 );
-        cubeMaterial = new THREE.MeshLambertMaterial({shading: THREE.FlatShading, map: THREE.ImageUtils.loadTexture("texture/cube_white.png" )});
-
-        document.addEventListener('mousemove', onMouseMove, false);
-        document.addEventListener('dblclick', onDoubleClick, false);
-        document.addEventListener('keydown', onKeyDown, false);
-        document.addEventListener('keyup', onKeyUp, false);
-
         raycaster = new THREE.Raycaster();
         mouse = new THREE.Vector2();
-        menu.init();
 
-        draw();
+        jqueryMap.$container = $container;
+        sceneMap = {
+            scene: scene,
+            camera: camera,
+            ambientLight: ambientLight,
+            directionalLight: directionalLight,
+            renderer: renderer,
+            controls: controls,
+            raycaster: raycaster,
+            mouse: mouse
+        }; 
+
+        initScene();
+        initMenu();
         animate();
 
+        $(window).on('resize', onWindowResize);
+        $(window).on('mousemove', onMouseMove);
+        $(window).on('dblclick', onDoubleClick);
     };
 
-    var draw = function(){
+    var initScene = function(){
         var drawLine = (function(){
             var size = 500, step = 50;
 
@@ -125,49 +149,107 @@ define(['jquery', 'three', 'OrbitControls'],function($, THREE){
             var material = new THREE.LineBasicMaterial({color: 0x000000, opacity: 0.2, transparent: true}),
                 line = new THREE.Line(geo, material, THREE.LinePieces);
 
-            scene.add(line);
+            sceneMap.scene.add(line);
         })();
 
         var drawPlane = (function(){
             var geo = new THREE.PlaneBufferGeometry( 1000, 1000 );
             geo.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
 
-            plane = new THREE.Mesh(geo);
+            var plane = new THREE.Mesh(geo);
             plane.visible = false;
 
             objects.push(plane);
-            scene.add(plane);
+            sceneMap.plane = plane;
+            sceneMap.scene.add(plane);
         })();
 
         var drawRollOverCube = (function(){
-            rollOverCube = new THREE.Mesh(new THREE.BoxGeometry(50, 50, 50), new THREE.MeshBasicMaterial({color: 0xff0000, opacity: 0.5, transparent: true}));
-            scene.add(rollOverCube);
+            var rollOverCube = new THREE.Mesh(new THREE.BoxGeometry(50, 50, 50), new THREE.MeshBasicMaterial({color: 0xff0000, opacity: 0.5, transparent: true}));
+            sceneMap.scene.add(rollOverCube);
+            sceneMap.rollOverCube = rollOverCube;
         })();
     };
 
+    var initMenu = function(){
+        jqueryMap.$container.append('<div id="Menu"><table><tr class="cube"><td>Cube</td></tr><tr class="base"><td>Base</td></tr><tr class="house"><td>house</td></tr></table><div class="export">Export</div></div>');
+        var $cube = jqueryMap.$container.find('.cube'),
+            $base = jqueryMap.$container.find('.base'),
+            $house = jqueryMap.$container.find('.house'),
+            $export = jqueryMap.$container.find('.export');
+
+        for (var i = 0; i < materials.length; i++) {
+            $cube.append('<td class="matPic"><div><img src="texture/' + materials[i].url + '" /></div></td>'); 
+            $base.append('<td class="matPic"><div><img src="texture/' + materials[i].url + '" /></div></td>'); 
+            $house.append('<td class="matPic"><div><img src="texture/' + materials[i].url + '" /></div></td>'); 
+        };
+
+        $cube.find('.matPic').on('click', function(){
+            currentIndex = $(this).index() - 1;
+            currentType = 'cube';
+        });
+        $base.find('.matPic').on('click', function(){
+            currentIndex = $(this).index() - 1;
+            currentType = 'base';
+        });
+        $house.find('.matPic').on('click', function(){
+            currentIndex = $(this).index() - 1;
+            currentType = 'house';
+        });
+        $export.on('click', function(){
+            var data = {types: [], cubes: []},
+                number = prompt('颜料数量');
+            
+            while(number != 0){
+                var color = prompt('颜色种类');
+                data.types.push({color: color, number: number});
+                number = prompt('颜料数量');
+            }
+            
+            for (var i = 0; i < cubes.length; i++) {
+                data.cubes.push({position: cubes[i].position, type: cubes[i].type, color: cubes[i].color});
+            };
+
+            var urlObject = window.URL || window.webkitURL || window,
+                export_blob = new Blob([JSON.stringify(data)]),
+                save_link = document.createElementNS('http://www.w3.org/1999/xhtml', 'a');
+
+                save_link.href = urlObject.createObjectURL(export_blob);
+                save_link.download = 'data.json';
+
+            var ev = document.createEvent("MouseEvents");
+            ev.initMouseEvent(
+                "click", true, false, window, 0, 0, 0, 0, 0
+                , false, false, false, false, 0, null
+            );
+            save_link.dispatchEvent(ev);
+        });
+    };
+
     var render = function(){
-        renderer.render(scene, camera);
+        sceneMap.renderer.render(sceneMap.scene, sceneMap.camera);
     };
     
     var animate = function(){
         requestAnimationFrame(animate);
-        controls.update();
+        sceneMap.controls.update();
         render();
     };
 
     var onMouseMove = function(event){
         event.preventDefault();
         
-        mouse.set((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
+        sceneMap.mouse.set((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
 
-        raycaster.setFromCamera(mouse, camera);
+        sceneMap.raycaster.setFromCamera(sceneMap.mouse, sceneMap.camera);
 
-        var intersects = raycaster.intersectObjects(objects);
+        var intersects = sceneMap.raycaster.intersectObjects(objects);
         
         if(intersects.length) {
             var intersect = intersects[0];
-            rollOverCube.position.copy( intersect.point ).add( intersect.face.normal );
-            rollOverCube.position.divideScalar( 50 ).floor().multiplyScalar( 50 ).addScalar( 25 );
+
+            sceneMap.rollOverCube.position.copy( intersect.point ).add( intersect.face.normal );
+            sceneMap.rollOverCube.position.divideScalar( 50 ).floor().multiplyScalar( 50 ).addScalar( 25 );
         }
 
         render();
@@ -175,100 +257,52 @@ define(['jquery', 'three', 'OrbitControls'],function($, THREE){
 
     var onDoubleClick = function(event){
         event.preventDefault();
+        
+        sceneMap.mouse.set((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
 
-        mouse.set((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
+        sceneMap.raycaster.setFromCamera(sceneMap.mouse, sceneMap.camera);
 
-        raycaster.setFromCamera(mouse, camera);
-
-        var intersects = raycaster.intersectObjects(objects);
+        var intersects = sceneMap.raycaster.intersectObjects(objects);
 
         if(intersects.length) {
             var intersect = intersects[0];
-            if(isShiftDown){
-                if(intersect.object != plane) {
-                    scene.remove(intersect.object);
-                    objects.splice(objects.indexOf(intersect.object), 1);             
+            
+            if(event.shiftKey) {
+                if(intersect.object != sceneMap.plane) {
+                    sceneMap.scene.remove(intersect.object);
+                    objects.splice(objects.indexOf(intersect.object), 1);
+                    cubes.splice(objects.indexOf(intersect.object), 1);         
                 }
             } else {
-                var cube = new THREE.Mesh(cubeGeo, cubeMaterial);
+                var cube = new THREE.Mesh(cubeGeo, new THREE.MeshLambertMaterial({shading: THREE.FlatShading, map: materials[currentIndex].material}));
+                if(currentType == 'house'){
+                    cube.material.opacity = 0.3;
+                    cube.material.transparent = true;
+                } else if(currentType == 'base') {
+                    cube.material.wireframe = true;
+                    cube.material.wireframeLinewidth = 4;
+                } 
 
-                cube.position.copy( intersect.point ).add( intersect.face.normal );
-                cube.position.divideScalar( 50 ).floor().multiplyScalar( 50 ).addScalar( 25 );
-                
-                scene.add( cube );
-                data.push({
-                    position: cube.position,
-                    color: currMaterial.color
-                });
-                objects.push( cube );  
+                cube.position.copy(intersect.point).add(intersect.face.normal);
+                cube.position.divideScalar(50).floor().multiplyScalar(50).addScalar(25);
+                cube.type = currentType;
+                cube.color = materials[currentIndex].color;
+                cubes.push(cube);
+                sceneMap.scene.add(cube);
+
+                objects.push(cube);
             }
         }
     };
 
-    var onKeyDown = function(event){
-        switch(event.keyCode){
-            case 16:
-                isShiftDown = true;
-                break;
-        }
+    var onWindowResize = function(){
+        sceneMap.camera.aspect = window.innerWidth / window.innerHeight;
+        sceneMap.camera.updateProjectionMatrix();
+
+        sceneMap.renderer.setSize(window.innerWidth, window.innerHeight);
     };
-
-    var onKeyUp = function(event){
-        switch(event.keyCode){
-            case 16:
-                isShiftDown = false;
-                break;
-        }
-    };
-
-    var menu = (function(){
-        var $Menu, currIndex = 0;
-        var init = function(){
-            var menuTemplate = '<div id="Menu"><div><img id="currMaterial" src="texture/cube_white.png"><div id="currMaterialName"></div></div><div id="buttons"><a class="btn" id="last" href="javascript:;">Last</a><a class="btn" id="next" href="javascript:;">Next</a><a class="btn" id="export" href="javascript:;">Export</a></div><div><label><input type="checkbox" />IsHouse</label></div></div>';
-            $container.append(menuTemplate);
-            $Menu = $container.find('#Menu');
-            $Menu.css({'position': 'absolute', 'top': 0, 'right': 0});
-            $Menu.find('#last').on('click', function(){
-                currIndex = (currIndex + materials.length - 1) % materials.length;
-                switchTexture();
-            });
-            $Menu.find('#next').on('click', function(){
-                currIndex = (currIndex + 1) % materials.length;
-                switchTexture();
-            });
-            $Menu.find('#export').on('click', function(){
-                var urlObject = window.URL || window.webkitURL || window;
-                var x = JSON.stringify(data);
-                
-                var export_blob = new Blob([x]);
-
-                var save_link = document.createElementNS('http://www.w3.org/1999/xhtml', 'a');
-
-                save_link.href = urlObject.createObjectURL(export_blob);
-                save_link.download = 'data.json';
-
-                var ev = document.createEvent("MouseEvents");
-                ev.initMouseEvent(
-                    "click", true, false, window, 0, 0, 0, 0, 0
-                    , false, false, false, false, 0, null
-                );
-                save_link.dispatchEvent(ev);
-            });            
-        };
-
-        var switchTexture = function(){
-            currMaterial = materials[currIndex];
-            $Menu.find('#currMaterialName').text(currMaterial.color);
-            $Menu.find('#currMaterial').attr('src', 'texture/' + currMaterial.url);
-            cubeMaterial = new THREE.MeshLambertMaterial({shading: THREE.FlatShading, map: currMaterial.material});
-        };
-        return {
-            init: init
-        };
-    })();
-
 
     return {
-        init: init
+        init: initModule
     };
 });

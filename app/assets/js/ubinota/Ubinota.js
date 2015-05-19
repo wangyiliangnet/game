@@ -7,7 +7,8 @@ requirejs.config({
     Physijs: 'lib/physi',
     OBJLoader: 'lib/OBJLoader',
     MTLLoader: 'lib/MTLLoader',
-    OBJMTLLoader: 'lib/OBJMTLLoader'
+    OBJMTLLoader: 'lib/OBJMTLLoader',
+    buzz: 'lib/buzz.min'
   },
   shim: {
   	'three': {
@@ -37,7 +38,7 @@ requirejs.config({
   	}
   }
 });
-define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],function($, THREE){
+define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],function($, THREE, buzz){
     var jqueryMap = {},
         configMap = {
             render_max_fps: 1 / 50
@@ -45,6 +46,7 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
         sceneMap = {},
         statusMap = {simulate: false},
         toolMap = [],
+        soundMap = {},
         resourceInfo = [
             {
                 type: 'image',
@@ -113,15 +115,9 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
             }
         ],
         resources = {},
-        currentTool,
-        initModule,
-        initSkybox,
-        initCubes,
-        onWindowResize,
-        onDoubleClick,
-        render;
+        currentTool;
 
-    initModule = function(){
+    var initModule = function(){
         var $container, scene, camera, ambientLight, hemisLight, renderer, controls, stats, clock, delta;
 
         $('body').append('<div id="container"></div>');
@@ -131,7 +127,7 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
         Physijs.scripts.ammo = 'ammo.js';
 
         scene = new Physijs.Scene();
-        scene.setGravity(new THREE.Vector3(0, -100, 0));
+        scene.setGravity(new THREE.Vector3(0, -320, 0));
 
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.5, 20001);
         ambientLight = new THREE.AmbientLight( 0x101030 );
@@ -175,17 +171,21 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
         };   
 
         initLoadingPage();
+        initSound();
+
         loadResources();
     };
 	
-    onWindowResize = function(){
+    var onWindowResize = function(){
         sceneMap.camera.aspect = window.innerWidth / window.innerHeight;
         sceneMap.camera.updateProjectionMatrix();
 
         sceneMap.renderer.setSize(window.innerWidth, window.innerHeight);
+
+        jqueryMap.$map.find('.box').width(jqueryMap.$map.find('.map').width());
     };
 
-    loadResources = function(){
+    var loadResources = function(){
         var manager = new THREE.LoadingManager(),
             loaders = {};
         manager.onLoad = onResourcesLoad;
@@ -231,28 +231,28 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
         };
     };
 
-    onResourcesLoad = function(){
+    var onResourcesLoad = function(){
     	setTimeout(initStart, 3000);
+
         initMap();
     };
 
-    onDoubleClick = function(event){
+    var onDoubleClick = function(event){
         event.preventDefault();
 
         var mouse = new THREE.Vector2(),
             raycaster = new THREE.Raycaster(),
             intersects;
 
-        console.log(sceneMap.cubes);
         mouse.set((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
 
         raycaster.setFromCamera(mouse, sceneMap.camera);
 
-        intersects = raycaster.intersectObjects(sceneMap.meshes);
+        intersects = raycaster.intersectObjects(sceneMap.cubes);
 
         if(intersects.length) {
         	var intersect = intersects[0].object.parent ? intersects[0].object.parent : intersects[0].object;
-        	console.log(intersect);
+        	console.log(currentTool.color + ' ' + intersect.color);
         	if(currentTool.color != intersect.color && currentTool.left){
         		if(intersect.painted) {
 	        		for (var i = 0; i < toolMap.length; i++) {
@@ -297,7 +297,7 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
         }
     };
 
-    initSkybox = function(){
+    var initSkybox = function(){
         var skyboxMap, skybgMap, getSide, loader, loadMap, skyboxShader, skybgShader, skyboxMaterial, skybgMaterial, skybox, skybg;
 
         getSide = function(x, y, image){
@@ -361,12 +361,12 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
         sceneMap.skybg = skybg;
     };
 
-    initCubes = function(mission){
+    var initCubes = function(mission){
         var cubeData = resources['map' + mission].cubes,
             data,
             children,
             cube,
-            weight,
+            mass,
             cubes = [],
             meshes = [];
 
@@ -389,11 +389,11 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
             }
 
             children = data.children;
-            weight = cubeData[i].color == 'base' ? 0 : 1;
-            cube = new Physijs.ConvexMesh(children[0].geometry, children[0].material, weight);
+            mass = cubeData[i].color == 'base' ? 0 : 1;
+            cube = new Physijs.ConvexMesh(children[0].geometry, children[0].material, mass);
             meshes.push(cube);
             for (var j = 1; j < children.length; j++) {
-            	var child = new Physijs.ConvexMesh(children[j].geometry, children[j].material, weight);
+            	var child = new Physijs.ConvexMesh(children[j].geometry, children[j].material);
             	cube.add(child);
             	meshes.push(child);
             };
@@ -411,7 +411,7 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
         sceneMap.meshes = meshes;
     };
 
-    initLoadingPage = function(){
+    var initLoadingPage = function(){
     	jqueryMap.$container.append('<div id="loadingPage"><div id="start">Start</div><div class="infoBox"><div class="loader"><img src="../image/pointer_cursor.ico"/></div><div class="info"></div></div></div>');
     	var $loadingPage = jqueryMap.$container.find('#loadingPage'),
     		$start = $loadingPage.find('#start');
@@ -421,7 +421,7 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
     	jqueryMap.$loadingInfo = $loadingPage.find('.infoBox');
     };
 
-    initTools = function(mission){
+    var initTools = function(mission){
     	var typeData = resources['map' + mission].types,
     		tools = [];
     	jqueryMap.$container.append('<div id="tanks"></div>');
@@ -458,20 +458,21 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
     	jqueryMap.$brushes = $brushes;
     };
 
-    initButton = function(){
+    var initButton = function(){
     	jqueryMap.$container.append('<div id="button"><img src="../image/button.png"></div>');
     	var $button = jqueryMap.$container.find('#button');
     	$button.on('click', onButtonClick);
     	jqueryMap.$button = $button;
     };
 
-    initStart = function(){
+    var initStart = function(){
+    	soundMap['loading'].play();
     	jqueryMap.$start.fadeIn(1000).on('click', function(){
     		jqueryMap.$loadingPage.fadeOut();
     	});
     };
 
-    initMap = function(){
+    var initMap = function(){
     	jqueryMap.$container.append('<div id="map"><div class="box"><img class="map" src="../image/map.jpg"/></div></div>');
     	var points = [[11, 44], [9, 72]],
     		arrows = [[11, 32], [9, 60]],
@@ -489,12 +490,37 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
     	jqueryMap.$map = $map;
     };
 
-    onButtonClick = function(){
+    var onButtonClick = function(){
+    	var cubes = sceneMap.cubes,
+    		checkConnect = function(cube){
+    			var position = cube.position;
+    			cubes.splice(cubes.indexOf(cube), 1);
+    			for (var i = 0; i < cubes.length; i++) {
+    				if(cubes[i].mass){
+	    				if (cubes[i].position.x == cube.position.x && cubes[i].position.y == cube.position.y && (cubes[i].position.z == cube.position.z + 50 || cubes[i].position.z == cube.position.z - 50) && cubes[i].color == cube.color) {
+	    					cubes[i].mass = 0;
+	    					checkConnect(cubes[i]);
+	    				} else if (cubes[i].position.z == cube.position.z && cubes[i].position.y == cube.position.y && (cubes[i].position.x == cube.position.x + 50 || cubes[i].position.x == cube.position.x - 50) && cubes[i].color == cube.color) {
+	    					cubes[i].mass = 0;
+	    					checkConnect(cubes[i]);
+	    				} else if (cubes[i].position.x == cube.position.x && cubes[i].position.z == cube.position.z && (cubes[i].position.y == cube.position.y + 50 || cubes[i].position.y == cube.position.y - 50) && cubes[i].color == cube.color) {
+	    					cubes[i].mass = 0;
+	    					checkConnect(cubes[i]);
+	    				}
+    				}
+    			};
+    		};
+
+    	for (var i = 0; i < cubes.length; i++) {
+    		if(!cubes[i].mass){
+    			cubes[i].color = 'blue';
+    			checkConnect(cubes[i]);
+    		}
+    	};
     	statusMap.simulate = true;
     };
 
-    initMission = function(i){
-    	console.log(i);
+    var initMission = function(i){
     	initSkybox();
         initTools(i);
         initButton();
@@ -503,7 +529,18 @@ define(['jquery', 'three', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],f
         jqueryMap.$map.fadeOut();
     };
 
-    render = function(){
+    var initSound = function(){
+    	var soundInfo = [
+    					{name: 'loading', loop: true}
+    					];
+    	for (var i = 0; i < soundInfo.length; i++) {
+    		soundMap[soundInfo[i].name] = new buzz.sound('../sound/' + soundInfo[i].name + '.ogg', {loop: soundInfo[i].loop});
+    	};
+    	console.log(soundMap);
+    	buzz.all().load();
+    };
+
+    var render = function(){
         requestAnimationFrame(render);
         sceneMap.delta += sceneMap.clock.getDelta();
 
