@@ -8,37 +8,40 @@ requirejs.config({
     OBJLoader: 'lib/OBJLoader',
     MTLLoader: 'lib/MTLLoader',
     OBJMTLLoader: 'lib/OBJMTLLoader',
-    buzz: 'lib/buzz.min'
+    howl: 'lib/howler.min'
   },
   shim: {
-  	'three': {
-  		exports: 'THREE'
-  	},
-  	'OrbitControls' : {
-  		deps: ['three'],
-  		exports: 'THREE.OrbitControls'
-  	},
-  	'stats': {
-  		deps: ['three'],
-  		exports: 'Stats'
-  	},
-  	'Physijs': {
-  		deps: ['three'],
-  		exports: 'Physijs'
-  	},
-  	'OBJLoader': {
-  		deps: ['three']	
-  	},
-  	'MTLLoader': {
-  		deps: ['three']
-  	},
-  	'OBJMTLLoader': {
-  		deps: ['three','OBJLoader','MTLLoader'],
-  		exports: 'OBJMTLLoader'
-  	}
+    'three': {
+        exports: 'THREE'
+    },
+    'OrbitControls' : {
+        deps: ['three'],
+        exports: 'THREE.OrbitControls'
+    },
+    'stats': {
+        deps: ['three'],
+        exports: 'Stats'
+    },
+    'howl': {
+    	exports: 'Howl'
+    },
+    'Physijs': {
+        deps: ['three'],
+        exports: 'Physijs'
+    },
+    'OBJLoader': {
+        deps: ['three'] 
+    },
+    'MTLLoader': {
+        deps: ['three']
+    },
+    'OBJMTLLoader': {
+        deps: ['three','OBJLoader','MTLLoader'],
+        exports: 'OBJMTLLoader'
+    }
   }
 });
-define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],function($, THREE, buzz){
+define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],function($, THREE){
     var jqueryMap = {},
         configMap = {
             render_max_fps: 1 / 50
@@ -84,8 +87,7 @@ define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         $container.append(renderer.domElement);
 
         controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.userPan = false;
-        controls.userPanSpeed = 0.0;
+        controls.noPan = true;
         controls.maxDistance = 5000.0;
         controls.maxPolarAngle = Math.PI * 0.5;
         controls.center.set(0, 100, 0);
@@ -116,7 +118,7 @@ define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
 
         loadResources();
     };
-	
+    
     var onWindowResize = function(){
         sceneMap.camera.aspect = window.innerWidth / window.innerHeight;
         sceneMap.camera.updateProjectionMatrix();
@@ -130,7 +132,7 @@ define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         var manager = new THREE.LoadingManager();
         manager.onLoad = onResourcesLoad;
         manager.onProgress = function(item, loaded, total){
-        	jqueryMap.$loadingInfo.find('.info').text('Loading... ' + loaded + '/' + total);
+            jqueryMap.$loadingInfo.find('.info').text('Loading... ' + loaded + '/' + total);
         };
 
         for (var i = 0; i < resourceInfo.images.length; i++) {
@@ -189,14 +191,14 @@ define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
     };
 
     var onResourcesLoad = function(){
-    	setTimeout(initStart, 3000);
+    	soundMap['loading'].play();
+        setTimeout(initStart, 3000);
 
         initMap();
     };
 
     var onDoubleClick = function(event){
         event.preventDefault();
-
         var mouse = new THREE.Vector2(),
             raycaster = new THREE.Raycaster(),
             intersects;
@@ -208,10 +210,11 @@ define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         intersects = raycaster.intersectObjects(sceneMap.meshes);
 
         if(intersects.length) {
-        	var intersect = intersects[0].object.parent ? intersects[0].object.parent : intersects[0].object;
-        	
+            var intersect = intersects[0].object.parent ? intersects[0].object.parent : intersects[0].object;
+  
             if(intersect.type == 'cube') {
                 if(currentTool.color != intersect.color && currentTool.left) {
+                	soundMap['paint'].play();
                     if(intersect.painted) {
                         for (var i = 0; i < toolMap.length; i++) {
                             if(toolMap[i].color == intersect.color) {
@@ -238,6 +241,7 @@ define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
                     currentTool.$tank.find('.left').height((currentTool.left / currentTool.total) * 100 + '%');                                     
                 } else {
                     if(intersect.painted){
+                    	soundMap['clear'].play();
                         intersect.traverse(function(object){
                             if (object instanceof THREE.Mesh) {
                                 if (object.material.name) {
@@ -351,9 +355,9 @@ define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
             cube = new Physijs.ConvexMesh(children[0].geometry, children[0].material, mass);
             meshes.push(cube);
             for (var j = 1; j < children.length; j++) {
-            	var child = new Physijs.ConvexMesh(children[j].geometry, children[j].material);
-            	cube.add(child);
-            	meshes.push(child);
+                var child = new Physijs.ConvexMesh(children[j].geometry, children[j].material);
+                cube.add(child);
+                meshes.push(child);
             };
 
             cube.type = cubeData[i].type;
@@ -364,119 +368,112 @@ define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
             cube.position.set(cubeData[i].position.x, cubeData[i].position.y, cubeData[i].position.z);
             cubes.push(cube);
             sceneMap.scene.add(cube);
-            console.log(cube.mass);
         };
 
-        jqueryMap.$container.on('dblclick', onDoubleClick);
+        jqueryMap.$container.on('click', onDoubleClick);
         sceneMap.cubes = cubes;
         sceneMap.meshes = meshes;
     };
 
     var initLoadingPage = function(){
-    	jqueryMap.$container.append('<div id="loadingPage"><div id="start">Start</div><div class="infoBox"><div class="loader"><img src="../image/pointer_cursor.ico"/></div><div class="info"></div></div></div>');
-    	var $loadingPage = jqueryMap.$container.find('#loadingPage'),
-    		$start = $loadingPage.find('#start');
-    	$loadingPage.css({'position': 'absolute', 'top': 0, 'left': 0, 'width': '100%', 'height': '100%', 'z-index': 10});
-    	jqueryMap.$loadingPage = $loadingPage;
-    	jqueryMap.$start = $start;
-    	jqueryMap.$loadingInfo = $loadingPage.find('.infoBox');
+        jqueryMap.$container.append('<div id="loadingPage"><div id="start">Start</div><div class="infoBox"><div class="loader"><img src="../image/pointer_cursor.ico"/></div><div class="info"></div></div></div>');
+        var $loadingPage = jqueryMap.$container.find('#loadingPage'),
+            $start = $loadingPage.find('#start');
+        $loadingPage.css({'position': 'absolute', 'top': 0, 'left': 0, 'width': '100%', 'height': '100%', 'z-index': 10});
+        jqueryMap.$loadingPage = $loadingPage;
+        jqueryMap.$start = $start;
+        jqueryMap.$loadingInfo = $loadingPage.find('.infoBox');
     };
 
     var initTools = function(mission){
-    	var typeData = resources.maps[mission].types,
-    		tools = [];
-    	jqueryMap.$container.append('<div id="tanks"></div>');
-    	jqueryMap.$container.append('<div id="brushes"></div>');
+        var typeData = resources.maps[mission].types,
+            tools = [];
+        jqueryMap.$container.append('<div id="tanks"></div>');
+        jqueryMap.$container.append('<div id="brushes"></div>');
 
-    	var $tanks = jqueryMap.$container.find('#tanks'),
-    		$brushes = jqueryMap.$container.find('#brushes');
+        var $tanks = jqueryMap.$container.find('#tanks'),
+            $brushes = jqueryMap.$container.find('#brushes');
 
-    	for (var i = 0; i < typeData.length; i++) {
-    		var tank = '<li class="tank"><div class="count">' + typeData[i].number +  '</div><div class="tube"><img class="full" src="../image/fioleVide.png"/><img class="left" src="../image/paints_' + typeData[i].color + '.png" /><img class="dec" src="../image/dec_' + typeData[i].color + '.png" /></div></li>',
-    			brush = '<li class="brush"><img src="../image/brush_' + typeData[i].color + '.png" ></li>';
-    		$tanks.append(tank);
-    		$brushes.append(brush);
+        for (var i = 0; i < typeData.length; i++) {
+            var tank = '<li class="tank"><div class="count">' + typeData[i].number +  '</div><div class="tube"><img class="full" src="../image/fioleVide.png"/><img class="left" src="../image/paints_' + typeData[i].color + '.png" /><img class="dec" src="../image/dec_' + typeData[i].color + '.png" /></div></li>',
+                brush = '<li class="brush"><img src="../image/brush_' + typeData[i].color + '.png" ></li>';
+            $tanks.append(tank);
+            $brushes.append(brush);
 
-    		var tool = {
-    			color: typeData[i].color,
-    			total: typeData[i].number,
-    			left: typeData[i].number,
-    			$tank: $tanks.children().last(),
-    			$brush: $brushes.children().last()
-    		};
-    		toolMap.push(tool);
-    	};
-    	currentTool = toolMap[0];
+            var tool = {
+                color: typeData[i].color,
+                total: typeData[i].number,
+                left: typeData[i].number,
+                $tank: $tanks.children().last(),
+                $brush: $brushes.children().last()
+            };
+            toolMap.push(tool);
+        };
+        currentTool = toolMap[0];
 
-    	$tanks.children().first().show();
-    	$brushes.children().on('click', function(){
-    		jqueryMap.$tanks.children().hide();
-    		currentTool = toolMap[$(this).index()];
-    		currentTool.$tank.show();
-    	});
+        $tanks.children().first().show();
+        $brushes.children().on('click', function(){
+            jqueryMap.$tanks.children().hide();
+            currentTool = toolMap[$(this).index()];
+            currentTool.$tank.show();
+        });
 
-    	jqueryMap.$tanks = $tanks;
-    	jqueryMap.$brushes = $brushes;
+        jqueryMap.$tanks = $tanks;
+        jqueryMap.$brushes = $brushes;
     };
 
     var initButton = function(){
-    	jqueryMap.$container.append('<div id="button"><img src="../image/button.png"></div>');
-    	var $button = jqueryMap.$container.find('#button');
-    	$button.on('click', onButtonClick);
-    	jqueryMap.$button = $button;
+        jqueryMap.$container.append('<div id="button"><img src="../image/button.png"></div>');
+        var $button = jqueryMap.$container.find('#button');
+        $button.on('click', onButtonClick);
+        jqueryMap.$button = $button;
     };
 
     var initStart = function(){
-    	soundMap['loading'].play();
-    	jqueryMap.$start.fadeIn(1000).on('click', function(){
-    		jqueryMap.$loadingPage.fadeOut();
-    	});
+        jqueryMap.$start.fadeIn(1000).on('click', function(){
+            jqueryMap.$loadingPage.fadeOut();
+        });
     };
 
     var initMap = function(){
-    	jqueryMap.$container.append('<div id="map"><div class="box"><img class="map" src="../image/map.jpg"/></div></div>');
-    	var points = [[11, 44], [9, 72]],
-    		arrows = [[11, 32], [9, 60]],
-    		$map = jqueryMap.$container.find('#map'),
-    		$box = $map.find('.box');
+        jqueryMap.$container.append('<div id="map"><div class="box"><img class="map" src="../image/map.jpg"/></div></div>');
+        var points = [[11, 44], [9, 72]],
+            arrows = [[11, 32], [9, 60]],
+            $map = jqueryMap.$container.find('#map'),
+            $box = $map.find('.box');
 
-    	for (var i = 0; i < points.length; i++) {
-    		$box.append('<div class="arrow"><img src="../image/arrow.png" /></div><div class="point" ><img src="../image/point.png" /></div>');
-    		var $point = $box.find('.point').last(),
-    			$arrow = $box.find('.arrow').last();
-    		$point.css({'left': points[i][0] + '%', 'top': points[i][1] + '%'});
-    		$arrow.css({'left': arrows[i][0] + '%', 'top': arrows[i][1] + '%'});
-    	}
-    	$box.find('.point').on('click', function(){initMission($(this).index() / 2 - 1);});
-    	jqueryMap.$map = $map;
+        for (var i = 0; i < points.length; i++) {
+            $box.append('<div class="arrow"><img src="../image/arrow.png" /></div><div class="point" ><img src="../image/point.png" /></div>');
+            var $point = $box.find('.point').last(),
+                $arrow = $box.find('.arrow').last();
+            $point.css({'left': points[i][0] + '%', 'top': points[i][1] + '%'});
+            $arrow.css({'left': arrows[i][0] + '%', 'top': arrows[i][1] + '%'});
+        }
+        $box.find('.point').on('click', function(){initMission($(this).index() / 2 - 1);});
+        jqueryMap.$map = $map;
     };
 
     var onButtonClick = function(){
-        console.log(statusMap.simulate);
-    	var cubes = sceneMap.cubes,
-    		checkConnect = function(cube){
+        var cubes = sceneMap.cubes,
+            checkConnect = function(cube){
                 for (var i = 0; i < cube.connected.length; i++) {
                     if(cubes[cube.connected[i]].mass && cubes[cube.connected[i]].color == cube.color){
                         cubes[cube.connected[i]].mass = 0;
                         checkConnect(cubes[cube.connected[i]]);                        
                     }
                 };
-    		};
+            };
 
-    	for (var i = 0; i < cubes.length; i++) {
-    		if(cubes[i].type == 'base'){
-    			checkConnect(cubes[i]);
-    		}
-    	};
-    	statusMap.simulate = true;
         for (var i = 0; i < cubes.length; i++) {
-            console.log(cubes[i].mass);
+            if(cubes[i].type == 'base'){
+                checkConnect(cubes[i]);
+            }
         };
-        console.log(statusMap.simulate);
+        statusMap.simulate = true;
     };
 
     var initMission = function(i){
-    	initSkybox();
+        initSkybox();
         initTools(i);
         initButton();
         initCubes(i);
@@ -485,13 +482,14 @@ define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
     };
 
     var initSound = function(){
-    	var soundInfo = [
-    					{name: 'loading', loop: true}
-    					];
+    	var soundInfo = [{name: 'loading', loop: true}, {name: 'paint', loop: false}, {name: 'clear', loop: false}];
     	for (var i = 0; i < soundInfo.length; i++) {
-    		soundMap[soundInfo[i].name] = new buzz.sound('../sound/' + soundInfo[i].name + '.ogg', {loop: soundInfo[i].loop});
+			soundMap[soundInfo[i].name] = new Howl({
+			  urls: ['../sound/' + soundInfo[i].name + '.ogg'],
+			  loop: soundInfo[i].loop
+			});
     	};
-    	buzz.all().load();
+
     };
 
     var render = function(){
@@ -503,7 +501,7 @@ define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
             sceneMap.delta -= configMap.render_max_fps;
         }
         if(statusMap.simulate){
-        	sceneMap.scene.simulate();
+            sceneMap.scene.simulate();
         }
 
         sceneMap.stats.update();
@@ -511,7 +509,7 @@ define(['jquery', 'three', 'buzz', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         sceneMap.renderer.render(sceneMap.scene, sceneMap.camera);
     };
 
-	return {
-		init: initModule
-	};
+    return {
+        init: initModule
+    };
 });
