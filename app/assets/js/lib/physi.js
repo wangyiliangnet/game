@@ -398,6 +398,7 @@ window.Physijs = (function() {
         this._constraints = {};
 
         var ab = new ArrayBuffer( 1 );
+
         this._worker.transferableMessage( ab, [ab] );
         SUPPORT_TRANSFERABLE = ( ab.byteLength === 0 );
 
@@ -982,16 +983,33 @@ window.Physijs = (function() {
     Physijs.Mesh.prototype.constructor = Physijs.Mesh;
     Eventable.make( Physijs.Mesh );
 
+
     // Physijs.Mesh.mass
-    Physijs.Mesh.prototype.__defineGetter__('mass', function() {
-        return this._physijs.mass;
-    });
-    Physijs.Mesh.prototype.__defineSetter__('mass', function( mass ) {
-        this._physijs.mass = mass;
-        if ( this.world ) {
-            this.world.execute( 'updateMass', { id: this._physijs.id, mass: mass } );
-        }
-    });
+    try {
+        Physijs.Mesh.prototype.__defineGetter__('mass', function() {
+            return this._physijs.mass;
+        });   
+        Physijs.Mesh.prototype.__defineSetter__('mass', function( mass ) {
+            this._physijs.mass = mass;
+            if ( this.world ) {
+                this.world.execute( 'updateMass', { id: this._physijs.id, mass: mass } );
+            }
+        });
+    } catch (ex) {
+        Object.defineProperty(Physijs.Mesh.prototype, 'mass', {
+            get: function() {
+                return this._physijs.mass;
+            },
+            set: function(mass) {
+                this._physijs.mass = mass;
+                if ( this.world ) {
+                    this.world.execute( 'updateMass', { id: this._physijs.id, mass: mass } );
+                }
+            },
+            enumerable: true,
+            configurable: true
+        });
+    }
 
     // Physijs.Mesh.applyCentralImpulse
     Physijs.Mesh.prototype.applyCentralImpulse = function ( force ) {

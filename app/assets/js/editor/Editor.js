@@ -165,8 +165,10 @@ define(['jquery', 'three', 'Physijs', 'OrbitControls', 'OBJMTLLoader'],function(
         })();
 
         var drawRollOverCube = (function(){
-            var rollOverCube = new THREE.Mesh(new THREE.BoxGeometry(50, 50, 50), new THREE.MeshBasicMaterial({color: 0xff0000, opacity: 0.5, transparent: true}));
+            var rollOverCube = new THREE.Mesh(new THREE.BoxGeometry(50, 50, 50), new THREE.MeshBasicMaterial({color: 0xff0000, opacity: 0.5, transparent: true})),
+                originCube = new THREE.Mesh(new THREE.BoxGeometry(50, 50, 50), new THREE.MeshBasicMaterial({color: 0x00ff00, opacity: 0.3, transparent: true}));
             sceneMap.scene.add(rollOverCube);
+            sceneMap.scene.add(originCube);
             sceneMap.rollOverCube = rollOverCube;
         })();
     };
@@ -282,7 +284,7 @@ define(['jquery', 'three', 'Physijs', 'OrbitControls', 'OBJMTLLoader'],function(
                 if(intersect.object != sceneMap.plane) {
                     sceneMap.scene.remove(intersect.object);
                     objects.splice(objects.indexOf(intersect.object), 1);
-                    cubes.splice(objects.indexOf(intersect.object), 1);         
+                    cubes.splice(cubes.indexOf(intersect.object), 1);         
                 }
             } else {
                 var cube = new THREE.Mesh(cubeGeo, new THREE.MeshLambertMaterial({shading: THREE.FlatShading, map: materials[currentIndex].material}));

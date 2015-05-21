@@ -51,7 +51,7 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         toolMap = [],
         soundMap = {},
         resourceInfo = {
-            maps: [{url: '../js/map1.json'}],
+            maps: [{url: '../js/map1.json'}, {url: '../js/map2.json'}],
             images: [{name: 'skybox', url: '../texture/sky.png'}, {name: 'skybg', url: '../texture/skybg.png'}],
             cubes: [{color: 'white', model: '../model/cube.obj', mtl: '../model/whiteCube.mtl'}, {color: 'blue', model: '../model/cube.obj', mtl: '../model/blueCube.mtl'}],
             bases: [{color: 'blue', model: '../model/base.obj', mtl: '../model/blueBase.mtl'}],
@@ -90,7 +90,7 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         controls.noPan = true;
         controls.maxDistance = 5000.0;
         controls.maxPolarAngle = Math.PI * 0.5;
-        controls.center.set(0, 100, 0);
+        controls.center.set(0, 200, 0);
 
         clock = new THREE.Clock();
         delta = 0;
@@ -370,7 +370,7 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
             sceneMap.scene.add(cube);
         };
 
-        jqueryMap.$container.on('click', onDoubleClick);
+        $(sceneMap.renderer.domElement).on('click', onDoubleClick);
         sceneMap.cubes = cubes;
         sceneMap.meshes = meshes;
     };
@@ -469,16 +469,43 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
                 checkConnect(cubes[i]);
             }
         };
+        var checkMass = function(cube){
+        	if(cube.mass) {
+        		if(cube.connected) {
+	         		for (var i = 0; i < cube.connected.length; i++) {
+	        			if(cubes[cube.connected[i]].position.y == cube.position.y - 50) {
+	        				return(checkMass(cubes[cube.connected[i]]));
+	        			}
+	        		};
+	        		return false;
+        		}
+        	} else {
+        		return true;
+        	}
+        };
+        var checkVictory = function(){
+	        for (var i = 0; i < cubes.length; i++) {
+	            if(cubes[i].type == 'house'){
+	            	if(!checkMass(cubes[i])) {
+	            		return false;
+	            	}
+	            }
+	        };
+	        return true;
+        };
+        console.log(checkVictory());
+
         statusMap.simulate = true;
     };
 
     var initMission = function(i){
+        jqueryMap.$map.fadeOut();
         initSkybox();
         initTools(i);
         initButton();
         initCubes(i);
+
         render();
-        jqueryMap.$map.fadeOut();
     };
 
     var initSound = function(){
