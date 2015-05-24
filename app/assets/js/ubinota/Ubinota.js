@@ -51,15 +51,16 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         toolMap = [],
         soundMap = {},
         resourceInfo = {
-            maps: [{url: '../js/map1.json'}, {url: '../js/map2.json'}],
+            maps: [{url: '../js/map1.json'}, {url: '../js/map2.json'}, {url: '../js/map3.json'}],
             images: [{name: 'skybox', url: '../texture/sky.png'}, {name: 'skybg', url: '../texture/skybg.png'}],
-            cubes: [{color: 'white', model: '../model/cube.obj', mtl: '../model/whiteCube.mtl'}, {color: 'blue', model: '../model/cube.obj', mtl: '../model/blueCube.mtl'}],
-            bases: [{color: 'blue', model: '../model/base.obj', mtl: '../model/blueBase.mtl'}],
+            cubes: [{color: 'white', model: '../model/cube.obj', mtl: '../model/whiteCube.mtl'}, {color: 'blue', model: '../model/cube.obj', mtl: '../model/blueCube.mtl'}, {color: 'green', model: '../model/cube.obj', mtl: '../model/greenCube.mtl'}],
+            bases: [{color: 'blue', model: '../model/base.obj', mtl: '../model/blueBase.mtl'}, {color: 'green', model: '../model/base.obj', mtl: '../model/greenBase.mtl'}],
             houses: [{color: 'white', model: '../model/house1.obj', mtl: '../model/house1.mtl'}, {color: 'yellow', model: '../model/house2.obj', mtl: '../model/house2.mtl'}],
-            mtls: [{color: 'white', url: '../model/whiteCube.mtl'}, {color: 'blue', url: '../model/blueCube.mtl'}]
+            mtls: [{color: 'white', url: '../model/whiteCube.mtl'}, {color: 'blue', url: '../model/blueCube.mtl'}, {color: 'green', url: '../model/greenCube.mtl'}]
         },
         resources = {maps: [], images: {}, cubes: {}, bases: {}, houses: {}, mtls: {}},
-        currentTool;
+        currentTool,
+        currentMission = 1;
 
     var initModule = function(){
         var $container, scene, camera, ambientLight, hemisLight, renderer, controls, stats, clock, delta;
@@ -115,6 +116,7 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
 
         initLoadingPage();
         initSound();
+
 
         loadResources();
     };
@@ -197,7 +199,7 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         initMap();
     };
 
-    var onDoubleClick = function(event){
+    var onCanvasClick = function(event){
         event.preventDefault();
         var mouse = new THREE.Vector2(),
             raycaster = new THREE.Raycaster(),
@@ -327,8 +329,8 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         sceneMap.skybg = skybg;
     };
 
-    var initCubes = function(mission){
-        var cubeData = resources.maps[mission].cubes,
+    var initCubes = function(){
+        var cubeData = resources.maps[currentMission].cubes,
             data,
             children,
             cube,
@@ -370,7 +372,7 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
             sceneMap.scene.add(cube);
         };
 
-        $(sceneMap.renderer.domElement).on('click', onDoubleClick);
+        $(sceneMap.renderer.domElement).bind('click', onCanvasClick);
         sceneMap.cubes = cubes;
         sceneMap.meshes = meshes;
     };
@@ -385,9 +387,10 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         jqueryMap.$loadingInfo = $loadingPage.find('.infoBox');
     };
 
-    var initTools = function(mission){
-        var typeData = resources.maps[mission].types,
+    var initTools = function(){
+        var typeData = resources.maps[currentMission].types,
             tools = [];
+        toolMap = [];
         jqueryMap.$container.append('<div id="tanks"></div>');
         jqueryMap.$container.append('<div id="brushes"></div>');
 
@@ -414,6 +417,8 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         $tanks.children().first().show();
         $brushes.children().on('click', function(){
             jqueryMap.$tanks.children().hide();
+            console.log($(this).index());
+
             currentTool = toolMap[$(this).index()];
             currentTool.$tank.show();
         });
@@ -437,8 +442,8 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
 
     var initMap = function(){
         jqueryMap.$container.append('<div id="map"><div class="box"><img class="map" src="../image/map.jpg"/></div></div>');
-        var points = [[11, 44], [9, 72]],
-            arrows = [[11, 32], [9, 60]],
+        var points = [[11, 44], [9, 72], [34, 85]],
+            arrows = [[11, 32], [9, 60], [34, 73]],
             $map = jqueryMap.$container.find('#map'),
             $box = $map.find('.box');
 
@@ -449,11 +454,19 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
             $point.css({'left': points[i][0] + '%', 'top': points[i][1] + '%'});
             $arrow.css({'left': arrows[i][0] + '%', 'top': arrows[i][1] + '%'});
         }
-        $box.find('.point').on('click', function(){initMission($(this).index() / 2 - 1);});
+
+        initSkybox();
+        initButton();
+
+        $box.find('.point').on('click', function(){
+        	currentMission = $(this).index() / 2 - 1;
+        	initMission();
+        });
         jqueryMap.$map = $map;
     };
 
     var onButtonClick = function(){
+    	$(sceneMap.renderer.domElement).unbind('click', onCanvasClick);
         var cubes = sceneMap.cubes,
             checkConnect = function(cube){
                 for (var i = 0; i < cube.connected.length; i++) {
@@ -493,17 +506,15 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
 	        };
 	        return true;
         };
-        console.log(checkVictory());
 
         statusMap.simulate = true;
+        startNextMission(checkVictory());
     };
 
-    var initMission = function(i){
+    var initMission = function(){
         jqueryMap.$map.fadeOut();
-        initSkybox();
-        initTools(i);
-        initButton();
-        initCubes(i);
+        initTools();
+        initCubes();
 
         render();
     };
@@ -519,6 +530,27 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
 
     };
 
+    var clearMission = function(){
+    	for (var i = 0; i < sceneMap.cubes.length; i++) {
+    		sceneMap.scene.remove(sceneMap.cubes[i]);
+    	};
+    	jqueryMap.$tanks.remove();
+    	jqueryMap.$brushes.remove();
+    };
+
+    var startNextMission = function(isVictory){
+    	setTimeout(function(){
+	    	statusMap.simulate = false;
+
+	    	if(isVictory){
+	    		clearMission();
+	    		currentMission++;
+	    		initMission();
+	    	}
+	    	render();
+    	}, 8000);
+    };
+
     var render = function(){
         requestAnimationFrame(render);
         sceneMap.delta += sceneMap.clock.getDelta();
@@ -527,6 +559,7 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
             sceneMap.skybox.rotation.y -= 0.0005;
             sceneMap.delta -= configMap.render_max_fps;
         }
+
         if(statusMap.simulate){
             sceneMap.scene.simulate();
         }
