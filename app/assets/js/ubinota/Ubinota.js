@@ -51,7 +51,7 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         toolMap = [],
         soundMap = {},
         resourceInfo = {
-            maps: [{url: '../js/map1.json'}, {url: '../js/map2.json'}, {url: '../js/map3.json'}],
+            maps: [{url: '../js/map1.json'}, {url: '../js/map2.json'}, {url: '../js/map3.json'}, {url: '../js/map4.json'}, {url: '../js/map5.json'}],
             images: [{name: 'skybox', url: '../texture/sky.png'}, {name: 'skybg', url: '../texture/skybg.png'}],
             cubes: [{color: 'white', model: '../model/cube.obj', mtl: '../model/whiteCube.mtl'}, {color: 'blue', model: '../model/cube.obj', mtl: '../model/blueCube.mtl'}, {color: 'green', model: '../model/cube.obj', mtl: '../model/greenCube.mtl'}],
             bases: [{color: 'blue', model: '../model/base.obj', mtl: '../model/blueBase.mtl'}, {color: 'green', model: '../model/base.obj', mtl: '../model/greenBase.mtl'}],
@@ -417,7 +417,6 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         $tanks.children().first().show();
         $brushes.children().on('click', function(){
             jqueryMap.$tanks.children().hide();
-            console.log($(this).index());
 
             currentTool = toolMap[$(this).index()];
             currentTool.$tank.show();
@@ -442,8 +441,8 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
 
     var initMap = function(){
         jqueryMap.$container.append('<div id="map"><div class="box"><img class="map" src="../image/map.jpg"/></div></div>');
-        var points = [[11, 44], [9, 72], [34, 85]],
-            arrows = [[11, 32], [9, 60], [34, 73]],
+        var points = [[11, 44], [9, 72], [34, 85], [74, 29], [89, 52]],
+            arrows = [[11, 32], [9, 60], [34, 73], [74, 17], [89, 40]],
             $map = jqueryMap.$container.find('#map'),
             $box = $map.find('.box');
 
@@ -548,7 +547,7 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
 	    		initMission();
 	    	}
 	    	render();
-    	}, 8000);
+    	}, 15000);
     };
 
     var render = function(){
