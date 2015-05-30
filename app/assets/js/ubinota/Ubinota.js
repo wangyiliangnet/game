@@ -44,14 +44,14 @@ requirejs.config({
 define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLoader'],function($, THREE){
     var jqueryMap = {},
         configMap = {
-            render_max_fps: 1 / 50
+            render_max_fps: 1 / 60
         },
         sceneMap = {},
         statusMap = {simulate: false},
         toolMap = [],
         soundMap = {},
         resourceInfo = {
-            maps: [{url: '../js/map1.json'}, {url: '../js/map2.json'}, {url: '../js/map3.json'}, {url: '../js/map4.json'}, {url: '../js/map5.json'}],
+            maps: [{url: '../js/map1.json'}, {url: '../js/map2.json'}, {url: '../js/map3.json'}, {url: '../js/map4.json'}, {url: '../js/map5.json'}, {url: '../js/map6.json'}, {url: '../js/map7.json'}, {url: '../js/map8.json'}, {url: '../js/map9.json'}],
             images: [{name: 'skybox', url: '../texture/sky.png'}, {name: 'skybg', url: '../texture/skybg.png'}],
             cubes: [{color: 'white', model: '../model/cube.obj', mtl: '../model/whiteCube.mtl'}, {color: 'blue', model: '../model/cube.obj', mtl: '../model/blueCube.mtl'}, {color: 'green', model: '../model/cube.obj', mtl: '../model/greenCube.mtl'}],
             bases: [{color: 'blue', model: '../model/base.obj', mtl: '../model/blueBase.mtl'}, {color: 'green', model: '../model/base.obj', mtl: '../model/greenBase.mtl'}],
@@ -72,7 +72,7 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         Physijs.scripts.ammo = 'ammo.js';
 
         scene = new Physijs.Scene();
-        scene.setGravity(new THREE.Vector3(0, -320, 0));
+        scene.setGravity(new THREE.Vector3(0, -380, 0));
 
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.5, 20001);
         ambientLight = new THREE.AmbientLight( 0x101030 );
@@ -116,7 +116,6 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
 
         initLoadingPage();
         initSound();
-
 
         loadResources();
     };
@@ -197,6 +196,7 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         setTimeout(initStart, 3000);
 
         initMap();
+        initResult();
     };
 
     var onCanvasClick = function(event){
@@ -427,7 +427,7 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
     };
 
     var initButton = function(){
-        jqueryMap.$container.append('<div id="button"><img src="../image/button.png"></div>');
+        jqueryMap.$container.append('<div id="button"><img src="../image/button.png"><img class="hover" src="../image/button_hover.png"><img class="clicked" src="../image/button_clicked.png" ></div>');
         var $button = jqueryMap.$container.find('#button');
         $button.on('click', onButtonClick);
         jqueryMap.$button = $button;
@@ -439,10 +439,16 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         });
     };
 
+    var initResult = function(){
+        jqueryMap.$container.append('<div id="result"><div class="defeat"><img src="./image/defeat.png" /></div><div class="victory"><img src="../image/victory.png" /></div></div>');
+        jqueryMap.$defeat = jqueryMap.$container.find('.defeat');
+        jqueryMap.$victory = jqueryMap.$container.find('.victory');
+    }
+
     var initMap = function(){
         jqueryMap.$container.append('<div id="map"><div class="box"><img class="map" src="../image/map.jpg"/></div></div>');
-        var points = [[11, 44], [9, 72], [34, 85], [74, 29], [89, 52]],
-            arrows = [[11, 32], [9, 60], [34, 73], [74, 17], [89, 40]],
+        var points = [[11, 44], [9, 72], [26, 21] ,[36, 86], [39, 54], [68, 18], [74, 29], [89, 52], [28, 36]],
+            arrows = [[11, 32], [9, 60], [26, 9], [36, 74], [39, 42], [68, 6], [74, 17], [89, 40], [28, 24]],
             $map = jqueryMap.$container.find('#map'),
             $box = $map.find('.box');
 
@@ -465,6 +471,7 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
     };
 
     var onButtonClick = function(){
+        jqueryMap.$button.find('.clicked').show();
     	$(sceneMap.renderer.domElement).unbind('click', onCanvasClick);
         var cubes = sceneMap.cubes,
             checkConnect = function(cube){
@@ -535,6 +542,7 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
     	};
     	jqueryMap.$tanks.remove();
     	jqueryMap.$brushes.remove();
+        jqueryMap.$button.find('.clicked').hide();
     };
 
     var startNextMission = function(isVictory){
@@ -542,10 +550,11 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
 	    	statusMap.simulate = false;
 
 	    	if(isVictory){
-	    		clearMission();
-	    		currentMission++;
-	    		initMission();
-	    	}
+                jqueryMap.$victory.show();
+
+	    	} else {
+                jqueryMap.$defeat.show();
+            }
 	    	render();
     	}, 15000);
     };
