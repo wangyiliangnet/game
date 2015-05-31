@@ -6,12 +6,20 @@ body {
     background: #fff;
 }
 #container {
-    cursor: url(../image/pointer_cursor.ico), default;
+    cursor: url(../image/menu_cursor.ico), default;
 }
-
+#container canvas {
+    cursor: url(../image/cursor_blue.ico), default;
+}
 #loadingPage {
-    background: url(../image/loading2.jpg) no-repeat center top;
+    background: #fff url(../image/loading.jpg) no-repeat center top;
     background-size: cover;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
 }
 #loadingPage #start {
     display: none;
@@ -82,9 +90,12 @@ body {
     display: none;
 }
 #tanks .tank .count {
-    margin-bottom: 20px;
+    position: absolute;
+    width: 100%;
+    top: 40%;
     text-align: center;
     font-size: 3em;
+    z-index: 1;
 }
 #tanks .tank .tube {
     position: relative;
@@ -114,13 +125,24 @@ body {
     overflow: hidden;
 }
 #brushes .brush{
+    position: relative;
     float: left;
     height: 100%;
 }
 #brushes .brush img{
     height: 100%;
 }
-
+#brushes .brush .hover {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 90px;
+    width: 100%;
+    display: none;
+}
+#brushes .brush:hover .hover {
+    display: block;
+}
 #button {
     position: absolute;
     bottom: 0;
@@ -163,7 +185,17 @@ body {
     height: 6%;
 }
 #map .box .point img {
+    width: 100%;
     height: 100%;
+}
+#map .box .point .hover {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+#map .box .point:hover .hover {
+    display: block;
 }
 #map .box .arrow{
     position: absolute;
@@ -177,15 +209,59 @@ body {
     0% {margin-top: 0;}
     100% {margin-top: 16px;}
 }
-#result .defeat, #result .victory{
+#result {
     display: none;
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    text-align: center;
+    text-align: center;    
+}
+#result .defeat, #result .victory{
+    display: none;
+    height: 100%;
+    position: relative;
 }
 #result img {
     height: 100%;
+}
+#result .back {
+    position: absolute;
+    bottom: 9%;
+    right: 0;
+    width: 22%;
+    height: 9%;
+    background: url(../image/back.png);
+    background-size: cover;
+}
+#result .restart {
+    position: absolute;
+    bottom: 20%;
+    right: 0;
+    width: 42%;
+    height: 9%;
+    background: url(../image/restart.png);
+    background-size: cover;
+}
+#result .continue {
+    position: absolute;
+    bottom: 20%;
+    right: 0;
+    width: 42%;
+    height: 9%;
+    background: url(../image/continue.png);
+    background-size: cover;
+}
+#result .back:hover, #result .restart:hover, #result .continue:hover {
+    -webkit-animation: rotate 1s infinite;
+}
+.rotate {
+     -webkit-animation: rotate 0.1s infinite;
+}
+@-webkit-keyframes rotate {
+    0% {-webkit-transform:rotate(0);}
+    25% {-webkit-transform:rotate(8deg);}
+    75% {-webkit-transform:rotate(-8deg);}
+    100% {-webkit-transform:rotate(0);}
 }

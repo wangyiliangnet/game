@@ -23,7 +23,7 @@ requirejs.config({
         exports: 'Stats'
     },
     'howl': {
-    	exports: 'Howl'
+        exports: 'Howl'
     },
     'Physijs': {
         deps: ['three'],
@@ -72,8 +72,7 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         Physijs.scripts.ammo = 'ammo.js';
 
         scene = new Physijs.Scene();
-        scene.setGravity(new THREE.Vector3(0, -380, 0));
-
+        scene.setGravity(new THREE.Vector3(0, -100, 0));
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.5, 20001);
         ambientLight = new THREE.AmbientLight( 0x101030 );
         hemisLight = new THREE.HemisphereLight(0xffffff, 0xfefefe, 1);
@@ -90,7 +89,7 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.noPan = true;
         controls.maxDistance = 5000.0;
-        controls.maxPolarAngle = Math.PI * 0.5;
+        controls.maxPolarAngle = Math.PI;
         controls.center.set(0, 200, 0);
 
         clock = new THREE.Clock();
@@ -192,7 +191,7 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
     };
 
     var onResourcesLoad = function(){
-    	soundMap['loading'].play();
+        soundMap['loading'].play();
         setTimeout(initStart, 3000);
 
         initMap();
@@ -216,7 +215,7 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
   
             if(intersect.type == 'cube') {
                 if(currentTool.color != intersect.color && currentTool.left) {
-                	soundMap['paint'].play();
+                    soundMap['paint'].play();
                     if(intersect.painted) {
                         for (var i = 0; i < toolMap.length; i++) {
                             if(toolMap[i].color == intersect.color) {
@@ -243,7 +242,7 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
                     currentTool.$tank.find('.left').height((currentTool.left / currentTool.total) * 100 + '%');                                     
                 } else {
                     if(intersect.painted){
-                    	soundMap['clear'].play();
+                        soundMap['clear'].play();
                         intersect.traverse(function(object){
                             if (object instanceof THREE.Mesh) {
                                 if (object.material.name) {
@@ -334,16 +333,16 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
             data,
             children,
             cube,
-            mass,
+            weight,
             cubes = [],
             meshes = [];
 
         for (var i = 0; i < cubeData.length; i++) {
-            mass = 1;
+            weight = 1;
             switch(cubeData[i].type){
                 case 'base':
                     data = resources.bases[cubeData[i].color].clone();
-                    mass = 0;
+                    weight = 0;
                     break;
                 case 'cube':
                     data = resources.cubes[cubeData[i].color].clone();
@@ -354,10 +353,11 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
             }
 
             children = data.children;
-            cube = new Physijs.ConvexMesh(children[0].geometry, children[0].material, mass);
+            cube = new Physijs.ConvexMesh(children[0].geometry, children[0].material, 0);
+            cube.weight = weight;
             meshes.push(cube);
             for (var j = 1; j < children.length; j++) {
-                var child = new Physijs.ConvexMesh(children[j].geometry, children[j].material);
+                var child = new Physijs.ConvexMesh(children[j].geometry, children[j].material, 0);
                 cube.add(child);
                 meshes.push(child);
             };
@@ -378,10 +378,9 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
     };
 
     var initLoadingPage = function(){
-        jqueryMap.$container.append('<div id="loadingPage"><div id="start">Start</div><div class="infoBox"><div class="loader"><img src="../image/pointer_cursor.ico"/></div><div class="info"></div></div></div>');
+        jqueryMap.$container.append('<div id="loadingPage"><div id="start">Start</div><div class="infoBox"><div class="loader"><img src="../image/cursor_blue.ico"/></div><div class="info"></div></div></div>');
         var $loadingPage = jqueryMap.$container.find('#loadingPage'),
             $start = $loadingPage.find('#start');
-        $loadingPage.css({'position': 'absolute', 'top': 0, 'left': 0, 'width': '100%', 'height': '100%', 'z-index': 10});
         jqueryMap.$loadingPage = $loadingPage;
         jqueryMap.$start = $start;
         jqueryMap.$loadingInfo = $loadingPage.find('.infoBox');
@@ -399,7 +398,7 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
 
         for (var i = 0; i < typeData.length; i++) {
             var tank = '<li class="tank"><div class="count">' + typeData[i].number +  '</div><div class="tube"><img class="full" src="../image/fioleVide.png"/><img class="left" src="../image/paints_' + typeData[i].color + '.png" /><img class="dec" src="../image/dec_' + typeData[i].color + '.png" /></div></li>',
-                brush = '<li class="brush"><img src="../image/brush_' + typeData[i].color + '.png" ></li>';
+                brush = '<li class="brush"><img src="../image/brush_' + typeData[i].color + '.png" ><img class="hover" src="../image/brush_hover_' + typeData[i].color + '.png" ></li>';
             $tanks.append(tank);
             $brushes.append(brush);
 
@@ -417,8 +416,8 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         $tanks.children().first().show();
         $brushes.children().on('click', function(){
             jqueryMap.$tanks.children().hide();
-
             currentTool = toolMap[$(this).index()];
+            $(sceneMap.renderer.domElement).css('cursor', 'url(../image/cursor_' + currentTool.color + '.ico), default');
             currentTool.$tank.show();
         });
 
@@ -429,7 +428,7 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
     var initButton = function(){
         jqueryMap.$container.append('<div id="button"><img src="../image/button.png"><img class="hover" src="../image/button_hover.png"><img class="clicked" src="../image/button_clicked.png" ></div>');
         var $button = jqueryMap.$container.find('#button');
-        $button.on('click', onButtonClick);
+        $button.find('.hover').on('click', onButtonClick);
         jqueryMap.$button = $button;
     };
 
@@ -440,9 +439,23 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
     };
 
     var initResult = function(){
-        jqueryMap.$container.append('<div id="result"><div class="defeat"><img src="./image/defeat.png" /></div><div class="victory"><img src="../image/victory.png" /></div></div>');
-        jqueryMap.$defeat = jqueryMap.$container.find('.defeat');
-        jqueryMap.$victory = jqueryMap.$container.find('.victory');
+        jqueryMap.$container.append('<div id="result"><div class="defeat"><img src="../image/defeat.png" /><div class="restart"></div><div class="back"></div></div><div class="victory"><img src="../image/victory.png" /><div class="continue"></div><div class="back"></div></div></div>');
+        jqueryMap.$result = jqueryMap.$container.find('#result');
+        jqueryMap.$defeat = jqueryMap.$result.find('.defeat');
+        jqueryMap.$victory = jqueryMap.$result.find('.victory');
+        jqueryMap.$result.find('.back').on('click', function(){
+            clearMission();
+            jqueryMap.$map.fadeIn();
+        });
+        jqueryMap.$result.find('.restart').on('click', function(){
+            clearMission();
+            initMission();
+        });
+        jqueryMap.$result.find('.continue').on('click', function(){
+            clearMission();
+            currentMission++;
+            initMission();
+        });        
     }
 
     var initMap = function(){
@@ -453,7 +466,7 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
             $box = $map.find('.box');
 
         for (var i = 0; i < points.length; i++) {
-            $box.append('<div class="arrow"><img src="../image/arrow.png" /></div><div class="point" ><img src="../image/point.png" /></div>');
+            $box.append('<div class="arrow"><img src="../image/arrow.png" /></div><div class="point" ><img src="../image/point.png" /><img class="hover" src="../image/point_hover.png" /></div>');
             var $point = $box.find('.point').last(),
                 $arrow = $box.find('.arrow').last();
             $point.css({'left': points[i][0] + '%', 'top': points[i][1] + '%'});
@@ -464,56 +477,62 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         initButton();
 
         $box.find('.point').on('click', function(){
-        	currentMission = $(this).index() / 2 - 1;
-        	initMission();
+            soundMap['click'].play();
+            currentMission = $(this).index() / 2 - 1;
+            initMission();
         });
         jqueryMap.$map = $map;
     };
 
     var onButtonClick = function(){
         jqueryMap.$button.find('.clicked').show();
-    	$(sceneMap.renderer.domElement).unbind('click', onCanvasClick);
-        var cubes = sceneMap.cubes,
-            checkConnect = function(cube){
-                for (var i = 0; i < cube.connected.length; i++) {
-                    if(cubes[cube.connected[i]].mass && cubes[cube.connected[i]].color == cube.color){
-                        cubes[cube.connected[i]].mass = 0;
-                        checkConnect(cubes[cube.connected[i]]);                        
-                    }
-                };
-            };
-
-        for (var i = 0; i < cubes.length; i++) {
-            if(cubes[i].type == 'base'){
-                checkConnect(cubes[i]);
-            }
+        $(sceneMap.renderer.domElement).unbind('click', onCanvasClick);
+        var cubes = sceneMap.cubes;
+        var checkConnect = function(cube){
+            cube.connected.forEach(function(e){
+                if(cubes[e].weight && cubes[e].color == cube.color){
+                    cubes[e].weight = 0;
+                    checkConnect(cubes[e]);
+                }
+            });
         };
         var checkMass = function(cube){
-        	if(cube.mass) {
-        		if(cube.connected) {
-	         		for (var i = 0; i < cube.connected.length; i++) {
-	        			if(cubes[cube.connected[i]].position.y == cube.position.y - 50) {
-	        				return(checkMass(cubes[cube.connected[i]]));
-	        			}
-	        		};
-	        		return false;
-        		}
-        	} else {
-        		return true;
-        	}
+            if(cube.weight) {
+                if(cube.connected) {
+                    for (var i = 0; i < cube.connected.length; i++) {
+                        if(cubes[cube.connected[i]].position.y == cube.position.y - 50) {
+                            return(checkMass(cubes[cube.connected[i]]));
+                        }
+                    };
+                    return false;
+                }
+            } else {
+                return true;
+            }
         };
         var checkVictory = function(){
-	        for (var i = 0; i < cubes.length; i++) {
-	            if(cubes[i].type == 'house'){
-	            	if(!checkMass(cubes[i])) {
-	            		return false;
-	            	}
-	            }
-	        };
-	        return true;
+            for (var i = 0; i < cubes.length; i++) {
+                if(cubes[i].type == 'house'){
+                    if(!checkMass(cubes[i])) {
+                        return false;
+                    }
+                }                
+            };
+            return true;
         };
 
-        statusMap.simulate = true;
+        cubes.forEach(function(e){
+            if(e.type == 'base'){
+                checkConnect(e);
+            }
+        });
+        cubes.forEach(function(e){
+            e.mass = e.weight;
+        });
+
+        //statusMap.simulate = true;
+        //sceneMap.scene.setGravity(new THREE.Vector3(0, -380, 0));
+        render();
         startNextMission(checkVictory());
     };
 
@@ -526,37 +545,39 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
     };
 
     var initSound = function(){
-    	var soundInfo = [{name: 'loading', loop: true}, {name: 'paint', loop: false}, {name: 'clear', loop: false}];
-    	for (var i = 0; i < soundInfo.length; i++) {
-			soundMap[soundInfo[i].name] = new Howl({
-			  urls: ['../sound/' + soundInfo[i].name + '.ogg'],
-			  loop: soundInfo[i].loop
-			});
-    	};
+        var soundInfo = [{name: 'loading', loop: true}, {name: 'paint', loop: false}, {name: 'clear', loop: false}, {name: 'click', loop: false}];
+        for (var i = 0; i < soundInfo.length; i++) {
+            soundMap[soundInfo[i].name] = new Howl({
+              urls: ['../sound/' + soundInfo[i].name + '.ogg'],
+              loop: soundInfo[i].loop
+            });
+        };
 
     };
 
     var clearMission = function(){
-    	for (var i = 0; i < sceneMap.cubes.length; i++) {
-    		sceneMap.scene.remove(sceneMap.cubes[i]);
-    	};
-    	jqueryMap.$tanks.remove();
-    	jqueryMap.$brushes.remove();
+        sceneMap.cubes.forEach(function(e){
+            sceneMap.scene.remove(e);
+        });
+
+        jqueryMap.$tanks.remove();
+        jqueryMap.$brushes.remove();
         jqueryMap.$button.find('.clicked').hide();
+        jqueryMap.$result.hide().children().hide();
     };
 
     var startNextMission = function(isVictory){
-    	setTimeout(function(){
-	    	statusMap.simulate = false;
-
-	    	if(isVictory){
-                jqueryMap.$victory.show();
-
-	    	} else {
-                jqueryMap.$defeat.show();
+        console.log(isVictory)
+        setTimeout(function(){
+            //sceneMap.scene.setGravity(new THREE.Vector3(0, 0, 0));
+            jqueryMap.$result.show();
+            if(isVictory){
+                jqueryMap.$victory.css('display','inline-block');
+            } else {
+                jqueryMap.$defeat.css('display','inline-block');
             }
-	    	render();
-    	}, 15000);
+            render();
+        }, 10000);
     };
 
     var render = function(){
@@ -566,14 +587,12 @@ define(['jquery', 'three', 'howl', 'OrbitControls', 'stats', 'Physijs','OBJMTLLo
         while(sceneMap.delta >= configMap.render_max_fps){
             sceneMap.skybox.rotation.y -= 0.0005;
             sceneMap.delta -= configMap.render_max_fps;
-        }
-
-        if(statusMap.simulate){
             sceneMap.scene.simulate();
+            sceneMap.controls.update();
+            
         }
-
         sceneMap.stats.update();
-        sceneMap.controls.update();
+        
         sceneMap.renderer.render(sceneMap.scene, sceneMap.camera);
     };
 
